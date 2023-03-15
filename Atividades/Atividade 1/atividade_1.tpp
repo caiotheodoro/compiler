@@ -1,7 +1,7 @@
 
 
 {algoritmo de quick sort (funcao raiz)}
-quick_sort(inteiro: list[])
+quick_sort(inteiro: list[], inteiro: SIZE)
     inteiro: first
     first:= 0
 
@@ -63,9 +63,9 @@ inteiro main()
     inteiro: SIZE
     SIZE := 5
 	inteiro: vector[SIZE] 
-	arr := [5, 2, 1, 4, 3]
+	vector := [5, 2, 1, 4, 3]
 
-    quick_sort(arr)
+    quick_sort(vector, SIZE)
 
     retorne 0
 	
