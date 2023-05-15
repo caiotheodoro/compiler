@@ -1,0 +1,17 @@
+digraph tree {
+    "0x7f4743e71a00" [label="programa"];
+    "0x7f4743e71ca0" [label="lista_declaracoes"];
+    "0x7f4743e719a0" [label="declaracao"];
+    "0x7f4743e71af0" [label="declaracao_funcao"];
+    "0x7f4743e71dc0" [label="tipo"];
+    "0x7f4743e71820" [label="INTEIRO"];
+    "0x7f4743da5250" [label="inteiro"];
+    "0x7f4743da5400" [label="Erro[3]: Cabecalho de funcao inválido."];
+    "0x7f4743e71a00" -> "0x7f4743e71ca0";
+    "0x7f4743e71ca0" -> "0x7f4743e719a0";
+    "0x7f4743e719a0" -> "0x7f4743e71af0";
+    "0x7f4743e71af0" -> "0x7f4743e71dc0";
+    "0x7f4743e71af0" -> "0x7f4743da5400";
+    "0x7f4743e71dc0" -> "0x7f4743e71820";
+    "0x7f4743e71820" -> "0x7f4743da5250";
+}

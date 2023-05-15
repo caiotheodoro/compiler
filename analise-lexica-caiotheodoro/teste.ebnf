@@ -1,0 +1,17 @@
+Letra   ::= [a-zA-Z]
+Digito  ::= [0-9]
+sinal   ::= ([\-\+]?)
+
+Identificador ::= (letra (digito | "_" | letra)*)
+                /* Qualquer sequência de letras, dígitos, sublinhados e letras, começando com uma letra. */
+
+Numero ::= (digito)+
+
+NotaçãoCientifica ::= (digito)+ ("." (digito)+)? (("e" | "E") ("+" | "-")? (digito)+)?
+
+Se_entao ::= "se" "(" Condição ")" "entao" "{" Corpo "}" "FIM"
+Se_entao_senao ::= "se" "(" Condição ")" "entao" "{" Corpo "}"
+                    || "se" "(" Condição ")" "entao" "{" Corpo "}" "senao" "{" Corpo "}" "FIM"
+
+
+repita_até ::= "repita" "{" Corpo "}" "até" "(" Condição ")" "FIM"

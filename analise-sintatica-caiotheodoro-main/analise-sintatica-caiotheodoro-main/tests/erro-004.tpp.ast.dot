@@ -1,0 +1,17 @@
+digraph tree {
+    "programa";
+    "lista_declaracoes";
+    "declaracao";
+    "declaracao_funcao";
+    "tipo";
+    "INTEIRO";
+    "inteiro";
+    "Erro[3]: Cabecalho de funcao inválido.";
+    "programa" -> "lista_declaracoes";
+    "lista_declaracoes" -> "declaracao";
+    "declaracao" -> "declaracao_funcao";
+    "declaracao_funcao" -> "tipo";
+    "declaracao_funcao" -> "Erro[3]: Cabecalho de funcao inválido.";
+    "tipo" -> "INTEIRO";
+    "INTEIRO" -> "inteiro";
+}
