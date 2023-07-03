@@ -53,97 +53,125 @@ def caps(word):
 nodes = ['se', 'corpo', 'retorna', 'escreva', 'repita', 'até', 'leia']
 
 tokens = [
-    '(',
-    ')',
-    ':',
-    ',',
-    'id',
-    'lista_parametros',
-    'var',
-    'tipo',
-    'dois_pontos',
-    'numero',
-    'cabecalho',
-    'vazio',
-    'declaracao',
-    'lista_declaracoes',
-    'atribuicao',
-    'expressao',
-    'expressao_logica',
-    'expressao_simples',
-    'expressao_aditiva',
-    'expressao_multiplicativa',
-    'expressao_unaria',
-    'operador_relacional',
-    'operador_logico',
-    'operador_negacao',
-    'fator',
-    'lista_variaveis',
-    'abre_colchete',
-    'senão',
-    'então',
-    'fecha_colchete',
-    'indice',
-    'chamada_funcao',
-    'lista_argumentos',
-    'operador_soma',
-    'MAIS',
-    'MENOS',
-    'virgula',
-    'VIRGULA',
-    'ESCREVA',
-    'SE',
-    'MAIOR',
-    'ENTAO',
-    'REPITA',
-    'ATE',
-    'IGUAL',
-    'LEIA',
-    'SENAO',
-    'ID',
-    'ABRE_PARENTESE',
-    'FECHA_PARENTESE',
-    'FIM',
-    'NUM_INTEIRO',
-    'NUM_PONTO_FLUTUANTE',
-    'RETORNA',
-    'INTEIRO',
-    'FLUTUANTE',
-    'ATRIBUICAO',
-]
+'ID',
+'var',
+'lista_variaveis',
+'dois_pontos',
+'tipo',
+'INTEIRO', 
+'NUM_INTEIRO',
+'lista_declaracoes',
+'declaracao',
+'indice',
+'numero', 
+'fator',
+'abre_colchete',
+'fecha_colchete', 
+'menos',
+'menor_igual',
+'maior_igual',
+'expressao',
+'DOIS_PONTOS',
+'expressao_logica',
+'ABRE_PARENTESE',
+'FECHA_PARENTESE', 
+'MAIS',
+'chamada_funcao',
+'MENOS',
+'expressao_simples',
+'expressao_aditiva',
+'expressao_multiplicativa',
+'expressao_unaria',
+'inicializacao_variaveis',
+'ATRIBUICAO',
+'NUM_NOTACAO_CIENTIFICA',
+'LEIA', 
+'abre_parentese',
+'fecha_parentese',
+'atribuicao',
+'fator',
+'cabecalho',
+'FIM',
+'operador_soma',
+'mais',
+'chamada_funcao', 
+'lista_argumentos', 
+'VIRGULA','virgula',
+'lista_parametros',
+'vazio',
+'(', ')',
+':',
+',',
+'FLUTUANTE',
+'NUM_PONTO_FLUTUANTE',
+'RETORNA',
+'ESCREVA',
+'SE',
+'ENTAO',
+'SENAO',
+'maior',
+'menor', 
+'REPITA',
+'igual', 
+'menos', 
+'menor_igual',
+'maior_igual',
+'operador_logico',
+'operador_multiplicacao', 
+'vezes',
+'id',
+'declaracao_variaveis',
+'atribuicao', 
+'operador_relacional',
+'MAIOR']
+
 
 symbol_table = [
-    'Token',
-    'Lexema',
-    'Tipo',
-    'Escopo',
-    'Linha',
-    'Coluna',
-    'Parametros',
-    'Retorno',
-    'Tamanho',
-    'Valor',
-    'Funcao',
+    'token',
+    'lex',
+    'tipo',
+    'dimensao',
+    "tamanho dimensional 1",
+    'tamnho dimensional 2',
+    'escopo',
+    'iniciacao',
+    'linha',
+    'funcao',
+    'parametros',
+    'valor',
 ]
 
 
-def retira_no(no, tree):
-    tree.children.remove(no)  # remove o nó da árvore
-    # adiciona os filhos do nó removido ao pai do nó removido
-    tree.children.extend(no.children)
+def adiciona_no(no, nodes, auxiliar_arvore):
+    for filho in nodes:
+        if filho.name == no.name:
+            auxiliar_arvore.extend(no.children)
+        else:
+            auxiliar_arvore.append(filho)
 
 
-def gera_poda(root):
-    def poda_aux_rec(no):
-        for child in no.children:  # percorre os filhos do nó
-            # chama a função recursivamente para cada filho
-            poda_aux_rec(child)
+def retira_no(no, tokens, nodes):
+    auxiliar_arvore = []
+    pai = no.parent
 
-        if no.name in nodes and not no.children:  # se o nó for um dos nós da lista e não tiver filhos
-            retira_no(no, no.parent)
+    if no.name in tokens or no.name.split(':')[0] in tokens:
+        for filho in pai.children:
+            if filho.name == no.name:
+                auxiliar_arvore.extend(no.children)
+            else:
+                auxiliar_arvore.append(filho)
+        pai.children = auxiliar_arvore
 
-    poda_aux_rec(root)
-    return root
+    elif no.name in nodes or no.name.split(':')[0] in nodes:
+        if len(no.children) == 0:
+            adiciona_no(pai.children, no, auxiliar_arvore)
+            pai.children = auxiliar_arvore
+
+
+def poda_arvore(arvore_abstrata, tokens, nodes):
+    for no in arvore_abstrata.children:
+        poda_arvore(no, tokens, nodes)
+    retira_no(arvore_abstrata, tokens, nodes)
 
 
 def aux_simbolos_tabela():

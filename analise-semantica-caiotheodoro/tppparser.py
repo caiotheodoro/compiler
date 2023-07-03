@@ -929,7 +929,7 @@ parser = yacc.yacc(method="LALR", optimize=True, start='programa', debug=True,
                    debuglog=log, write_tables=False, tabmodule='tpp_parser_tab')
 
 
-def main(argv):
+def main():
     if(len(sys.argv) < 2):
         raise TypeError(error_handler.newError('ERR-SYN-USE'))
 
@@ -946,7 +946,7 @@ def main(argv):
     if root and root.children != ():
         print("Generating Syntax Tree Graph...")
         # DotExporter(root).to_picture(argv[1] + ".ast.png")
-        UniqueDotExporter(root).to_picture(argv[1] + ".unique.ast.png")
+        #UniqueDotExporter(root).to_picture(argv[1] + ".unique.ast.png")
         # DotExporter(root).to_dotfile(argv[1] + ".ast.dot")
         # UniqueDotExporter(root).to_dotfile(argv[1] + ".unique.ast.dot")
         print(RenderTree(root, style=AsciiStyle()).by_attr())
@@ -967,6 +967,14 @@ def main(argv):
 
         return null
     print('\n\n')
+
+def retorna_arvore(data):
+
+    parser.parse(data)
+    if root and root.children != ():
+        return root
+    else:
+        return None
 
 
 if __name__ == "__main__":
