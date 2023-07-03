@@ -1,0 +1,31 @@
+    lex.py: 924:lex: tokens   = ['ID', 'NUM_NOTACAO_CIENTIFICA', 'NUM_PONTO_FLUTUANTE', 'NUM_INTEIRO', 'MAIS', 'MENOS', 'VEZES', 'DIVIDE', 'E', 'OU', 'DIFERENTE', 'MENOR_IGUAL', 'MAIOR_IGUAL', 'MENOR', 'MAIOR', 'IGUAL', 'NAO', 'ABRE_PARENTESE', 'FECHA_PARENTESE', 'ABRE_COLCHETE', 'FECHA_COLCHETE', 'VIRGULA', 'DOIS_PONTOS', 'ATRIBUICAO', 'SE', 'ENTAO', 'SENAO', 'FIM', 'REPITA', 'FLUTUANTE', 'RETORNA', 'ATE', 'LEIA', 'ESCREVA', 'INTEIRO']
+    lex.py: 925:lex: literals = ''
+    lex.py: 926:lex: states   = {'INITIAL': 'inclusive'}
+    lex.py: 953:lex: Adding rule t_ID -> '(([a-zA-Z·¡„√‡¿È…ÌÕÛ”ı’])(([0-9])+|_|([a-zA-Z·¡„√‡¿È…ÌÕÛ”ı’]))*)' (state 'INITIAL')
+    lex.py: 953:lex: Adding rule t_NUM_NOTACAO_CIENTIFICA -> '(([\-\+]?)([1-9])\.([0-9])+[eE]([\-\+]?)([0-9])+)' (state 'INITIAL')
+    lex.py: 953:lex: Adding rule t_NUM_PONTO_FLUTUANTE -> '\d+[eE][-+]?\d+|(\.\d+|\d+\.\d*)([eE][-+]?\d+)?' (state 'INITIAL')
+    lex.py: 953:lex: Adding rule t_NUM_INTEIRO -> '\d+' (state 'INITIAL')
+    lex.py: 953:lex: Adding rule t_COMENTARIO -> '(\{((.|\n)*?)\})' (state 'INITIAL')
+    lex.py: 953:lex: Adding rule t_newline -> '\n+' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_OU -> '\|\|' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_MAIS -> '\+' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_VEZES -> '\*' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_ABRE_PARENTESE -> '\(' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_FECHA_PARENTESE -> '\)' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_ABRE_COLCHETE -> '\[' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_FECHA_COLCHETE -> '\]' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_ATRIBUICAO -> ':=' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_E -> '&&' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_DIFERENTE -> '<>' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_MENOR_IGUAL -> '<=' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_MAIOR_IGUAL -> '>=' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_MENOS -> '-' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_DIVIDE -> '/' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_VIRGULA -> ',' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_DOIS_PONTOS -> ':' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_NAO -> '!' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_MENOR -> '<' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_MAIOR -> '>' (state 'INITIAL')
+    lex.py: 959:lex: Adding rule t_IGUAL -> '=' (state 'INITIAL')
+    lex.py: 966:lex: ==== MASTER REGEXS FOLLOW ====
+    lex.py: 975:lex: state 'INITIAL' : regex[0] = '(?P<t_ID>(([a-zA-Z·¡„√‡¿È…ÌÕÛ”ı’])(([0-9])+|_|([a-zA-Z·¡„√‡¿È…ÌÕÛ”ı’]))*))|(?P<t_NUM_NOTACAO_CIENTIFICA>(([\-\+]?)([1-9])\.([0-9])+[eE]([\-\+]?)([0-9])+))|(?P<t_NUM_PONTO_FLUTUANTE>\d+[eE][-+]?\d+|(\.\d+|\d+\.\d*)([eE][-+]?\d+)?)|(?P<t_NUM_INTEIRO>\d+)|(?P<t_COMENTARIO>(\{((.|\n)*?)\}))|(?P<t_newline>\n+)|(?P<t_OU>\|\|)|(?P<t_MAIS>\+)|(?P<t_VEZES>\*)|(?P<t_ABRE_PARENTESE>\()|(?P<t_FECHA_PARENTESE>\))|(?P<t_ABRE_COLCHETE>\[)|(?P<t_FECHA_COLCHETE>\])|(?P<t_ATRIBUICAO>:=)|(?P<t_E>&&)|(?P<t_DIFERENTE><>)|(?P<t_MENOR_IGUAL><=)|(?P<t_MAIOR_IGUAL>>=)|(?P<t_MENOS>-)|(?P<t_DIVIDE>/)|(?P<t_VIRGULA>,)|(?P<t_DOIS_PONTOS>:)|(?P<t_NAO>!)|(?P<t_MENOR><)|(?P<t_MAIOR>>)|(?P<t_IGUAL>=)'
