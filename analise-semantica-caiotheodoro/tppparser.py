@@ -978,4 +978,4 @@ def retorna_arvore(data):
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
