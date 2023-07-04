@@ -968,6 +968,7 @@ def main():
         return null
     print('\n\n')
 
+
 def retorna_arvore(data):
 
     parser.parse(data)
@@ -978,4 +979,4 @@ def retorna_arvore(data):
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)

@@ -150,32 +150,33 @@ def adiciona_no(no, nodes, auxiliar_arvore):
             auxiliar_arvore.append(filho)
 
 
-def retira_no(no_remove,tokens,nodes):
+def retira_no(no_remover, tokens, nodes):
     auxiliar_arvore = []
-    pai = no_remove.parent
+    pai = no_remover.parent
 
-    if no_remove.name in tokens or no_remove.name.split(':')[0] in tokens:
+    if no_remover.name in tokens or no_remover.name.split(':')[0] in tokens:
         for filho in pai.children:
-            if filho.name != no_remove.name:
+            if filho.name != no_remover.name:
                 auxiliar_arvore.append(filho)
             else:
-                auxiliar_arvore.extend(no_remove.children)
+                auxiliar_arvore.extend(no_remover.children)
         pai.children = auxiliar_arvore
 
-    if no_remove.name in nodes or no_remove.name.split(':')[0] in nodes:
-        if len(no_remove.children) == 0:
+    if no_remover.name in nodes or no_remover.name.split(':')[0] in nodes:
+        if len(no_remover.children) == 0:
             for filho in pai.children:
-                if filho.name != no_remove.name and filho.name.split(':')[0] != no_remove.name:
+                if filho.name != no_remover.name and filho.name.split(':')[0] != no_remover.name:
                     auxiliar_arvore.append(filho)
                 else:
-                    auxiliar_arvore.extend(no_remove.children)
+                    auxiliar_arvore.extend(no_remover.children)
             pai.children = auxiliar_arvore
 
 
-def poda_arvore(arvore_abstrata,tokens,nodes):
+def poda_arvore(arvore_abstrata, tokens, nodes):
     for no in arvore_abstrata.children:
-        poda_arvore(no,tokens,nodes)
-    retira_no(arvore_abstrata,tokens,nodes)
+        poda_arvore(no, tokens, nodes)
+    retira_no(arvore_abstrata, tokens, nodes)
+
 
 def aux_simbolos_tabela():
     return pd.DataFrame(data=[],
@@ -189,24 +190,24 @@ conv_tipo = {
 }
 
 
-def processa_numero(ret, retorno, lista_retorno):
+def processa_numero(ret, retorno, ret_lista):
     indice = ret.children[0].children[0].label
-    tipo_retorno = ret.children[0].label
-    tipo_retorno = conv_tipo.get(tipo_retorno)
+    ret_tipo = ret.children[0].label
+    ret_tipo = conv_tipo.get(ret_tipo)
 
-    retorno[indice] = tipo_retorno
-    lista_retorno.append(retorno)
+    retorno[indice] = ret_tipo
+    ret_lista.append(retorno)
 
-    return lista_retorno
+    return ret_lista
 
 
-def processa_id(ret, retorno, lista_retorno):
+def processa_id(ret, retorno, ret_lista):
     indice = ret.children[0].label
-    tipo_retorno = 'parametro'
-    retorno[indice] = tipo_retorno
-    lista_retorno.append(retorno)
+    ret_tipo = 'parametro'
+    retorno[indice] = ret_tipo
+    ret_lista.append(retorno)
 
-    return lista_retorno
+    return ret_lista
 
 
 def processa_parametro(param, tipo, nome):
@@ -237,49 +238,49 @@ def processa_cabecalho(filho, nome_funcao):
     return filho.children[0].children[0].label, nome_funcao
 
 
-def check_declaracao_variavel(variaveis, variavel, tabela_simbolos, error_handler):
-    for _, row in variaveis.iterrows():
-        declaracoes = tabela_simbolos.loc[(tabela_simbolos['lex'] == row['lex']) &
-                                          (tabela_simbolos['iniciacao'] == 'N') &
-                                          (tabela_simbolos['escopo'] == row['escopo'])]
+def checa_declaracao_variavel(varss, var, tab_sym, error_handler):
+    for _, row in varss.iterrows():
+        declaracoes = tab_sym.loc[(tab_sym['lex'] == row['lex']) &
+                                  (tab_sym['iniciacao'] == 'N') &
+                                  (tab_sym['escopo'] == row['escopo'])]
 
     if len(declaracoes) > 1:
         print(error_handler.newError(
-            'WAR-ALR-DECL',variavel['lex']))
+            'WAR-ALR-DECL', var['lex']))
 
 
-def check_inicializacao_variavel(tabela_simbolos, variavel, error_handler):
-    inicializacao_variaveis = tabela_simbolos.loc[(tabela_simbolos['lex'] == variavel['lex']) &
-                                                  (tabela_simbolos['escopo'] == variavel['escopo']) &
-                                                  (tabela_simbolos['iniciacao'] == 'S')]
+def checa_inicializacao_variavel(tab_sym, var, error_handler):
+    inicializacao_variaveis = tab_sym.loc[(tab_sym['lex'] == var['lex']) &
+                                          (tab_sym['escopo'] == var['escopo']) &
+                                          (tab_sym['iniciacao'] == 'S')]
     if len(inicializacao_variaveis) == 0:
         print(error_handler.newError(
-            'WAR-SEM-VAR-DECL-NOT-USED',value=variavel['lex']))
+            'WAR-SEM-VAR-DECL-NOT-USED', value=var['lex']))
 
 
-def check_retorno_funcao(tabela_simbolos, error_handler):
-    funcao_principal = tabela_simbolos.loc[(tabela_simbolos['funcao'] == 'S') & (
-        tabela_simbolos['lex'] == 'principal')]
-    if not funcao_principal.empty:
-        retorno_principal = tabela_simbolos.loc[(tabela_simbolos['funcao'] == 'S') &
-                                                (tabela_simbolos['escopo'] == 'principal') &
-                                                (tabela_simbolos['lex'] == 'retorna')]
+def checa_retorno_funcao(tab_sym, error_handler):
+    main_func = tab_sym.loc[(tab_sym['funcao'] == 'S') & (
+        tab_sym['lex'] == 'principal')]
+    if not main_func.empty:
+        retorno_principal = tab_sym.loc[(tab_sym['funcao'] == 'S') &
+                                        (tab_sym['escopo'] == 'principal') &
+                                        (tab_sym['lex'] == 'retorna')]
         if retorno_principal.empty:
             print(error_handler.newError('ERR-RET-TIP-INCOMP'))
     else:
         print(error_handler.newError('ERR-SEM-MAIN-NOT-DECL'))
 
 
-def check_chamada_funcao(chamada, tabela_simbolos, error_handler):
-    declaracao_funcao = tabela_simbolos.loc[(tabela_simbolos['funcao'] == 'S') & (
-        tabela_simbolos['lex'] == chamada['lex'])]
+def checa_chamada_funcao(chamada, tab_sym, error_handler):
+    declaracao_funcao = tab_sym.loc[(tab_sym['funcao'] == 'S') & (
+        tab_sym['lex'] == chamada['lex'])]
     if declaracao_funcao.empty:
         print(error_handler.newError(
-            'WAR-SEM-VAR-DECL-NOT-USED',value=chamada['lex']))
+            'WAR-SEM-VAR-DECL-NOT-USED', value=chamada['lex']))
     else:
-        quantidade_parametros_chamada = len(chamada['parametros'])
+        qtd_params = len(chamada['parametros'])
         quantidade_parametros_declaracao = len(
             declaracao_funcao.iloc[0]['parametros'])
-        if quantidade_parametros_chamada != quantidade_parametros_declaracao:
+        if qtd_params != quantidade_parametros_declaracao:
             print(error_handler.newError(
-                'ERR-PARAM-FUNC-INCOMP',value=chamada['lex']))
+                'ERR-PARAM-FUNC-INCOMP', value=chamada['lex']))
