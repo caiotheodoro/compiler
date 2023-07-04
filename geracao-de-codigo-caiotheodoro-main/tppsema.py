@@ -582,3 +582,20 @@ if __name__ == "__main__":
             poda_arvore(root, tokens, nodes)  # poda a arvore
             UniqueDotExporter(root).to_picture(
                 f'{sys.argv[1]}.podada.unique.ast.png')
+
+
+def retorna_arvore_tabela(data):
+    root = retorna_arvore(data)  # retorna a arvore do parser
+
+    if root:
+        tab_sym = aux_simbolos_tabela()  # cria a tabela de simbolos
+        tab_sym = tab_sym_aux(
+            root, tab_sym)
+
+        verifica_regras_semanticas(tab_sym)
+
+        poda_arvore(root, tokens, nodes)  # poda a arvore
+
+        return root, tab_sym
+    else:
+        return None, None
