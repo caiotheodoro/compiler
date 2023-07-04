@@ -1,0 +1,37 @@
+{
+  "name": "MyLanguage",
+  "scopeName": "source.MyLanguage",
+  "fileTypes": ["mylanguage"],
+  "patterns": [
+    {
+      "name": "comment.block",
+      "begin": "{",
+      "end": "}",
+      "patterns": []
+    },
+    {
+      "name": "keyword.control",
+      "match": "\\b(se|então|senão|fim|repita|flutuante|retorna|até|leia|escreva|inteiro)\\b"
+    },
+    {
+      "name": "constant.numeric.integer",
+      "match": "\\b(NUM_INTEIRO)\\b"
+    },
+    {
+      "name": "constant.numeric.float",
+      "match": "\\b(NUM_PONTO_FLUTUANTE|NUM_NOTACAO_CIENTIFICA)\\b"
+    },
+    {
+      "name": "variable",
+      "match": "\\b(ID)\\b"
+    },
+    {
+      "name": "keyword.operator",
+      "match": "\\b(MAIS|MENOS|VEZES|DIVIDE|E|OU|DIFERENTE|MENOR_IGUAL|MAIOR_IGUAL|MENOR|MAIOR|IGUAL|NAO)\\b"
+    },
+    {
+      "name": "punctuation.definition",
+      "match": "\\b(ABRE_PARENTESE|FECHA_PARENTESE|ABRE_COLCHETE|FECHA_COLCHETE|VIRGULA|DOIS_PONTOS|ATRIBUICAO)\\b"
+    }
+  ]
+}
