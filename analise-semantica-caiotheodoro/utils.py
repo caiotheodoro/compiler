@@ -274,8 +274,7 @@ def checa_retorno_funcao(tab_sym, error_handler):
                                         (tab_sym['escopo'] == 'principal') &
                                         (tab_sym['lex'] == 'retorna')]  # procura pelo retorno da funcao principal
         if retorno_principal.empty:
-            # se nao tiver retorno, printa o erro
-            print(error_handler.newError('ERR-RET-TIP-INCOMP'))
+            print(error_handler.newError('ERR-RET-TIP-INCOMP', value=main_func['tipo'].values[0]))
     else:
         # se nao tiver funcao principal, printa o erro
         print(error_handler.newError('ERR-SEM-MAIN-NOT-DECL'))
@@ -285,12 +284,16 @@ def checa_chamada_funcao(chamada, tab_sym, error_handler):
     declaracao_funcao = tab_sym.loc[(tab_sym['funcao'] == '1') & (
         tab_sym['lex'] == chamada['lex'])]  # procura pela declaracao da funcao
     if declaracao_funcao.empty:
+        
         print(error_handler.newError(
-            'WAR-SEM-VAR-DECL-NOT-USED', value=chamada['lex']))  # se nao tiver declaracao, printa o erro
+            'ERR-CHAMA-FUNC', value=chamada['lex']))  # se nao tiver declaracao, printa o erro
     else:
         qtd_params = len(chamada['parametros'])
         quantidade_parametros_declaracao = len(
             declaracao_funcao.iloc[0]['parametros'])  # pega a quantidade de parametros da declaracao da funcao
-        if qtd_params != quantidade_parametros_declaracao:
+        if qtd_params > quantidade_parametros_declaracao:
             print(error_handler.newError(
-                'ERR-PARAM-FUNC-INCOMP', value=chamada['lex']))  # se a quantidade de parametros for diferente, printa o erro
+                'ERR-PARAM-FUNC-INCOMP-MAIS', value=chamada['lex']))  # se a quantidade de parametros for diferente, printa o erro
+        elif qtd_params < quantidade_parametros_declaracao:
+             print(error_handler.newError(
+                'ERR-PARAM-FUNC-INCOMP-MENOS', value=chamada['lex']))  # se a quantidade de parametros for diferente, printa o erro

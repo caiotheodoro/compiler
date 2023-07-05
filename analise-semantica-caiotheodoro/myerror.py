@@ -16,7 +16,7 @@ class MyError():
       message = self.config.get(self.errorType, key)
     if(data):
       for key, value in data.items():
-        message = message + ", " f"{key}: {value}"
+        message = message.format(value)
 
     return message
     #print(message)

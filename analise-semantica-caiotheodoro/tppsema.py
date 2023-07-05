@@ -144,8 +144,6 @@ def encontra_parametro_funcao(no, parametros):
 
 
 def encontra_parametros(no_parametro, parametros):  # encontra os parametros da funcao
-    no_parametro = no_parametro
-    parametros = parametros
     parametro = {}
     tipo = ''
     idx = ''
@@ -530,13 +528,98 @@ def retorna_tipo_var(tipo_var_inicializacao, tipo_var, tipo_variavel_novo):
     return status, tipo_variavel_novo  # retorna o status e o tipo da variavel
 
 
+
+def verifica_tipo_atribuicao(variavel_atual, tipo_variavel, escopo_variavel, inicializacao_variaveis, variaveis, funcoes, tabela_simbolos):
+    nome_variavel = variavel_atual['lex']
+    status = True
+    tipo_var_inicializacao_retorno = ''
+    tipo_variavel_novo = ''
+    nome_inicializacao = ''
+
+    for ini_variaveis in inicializacao_variaveis:
+        for ini_var in ini_variaveis:
+            if ini_variaveis != 'n/a':
+                for nome_var_inicializacao, tipo_var_inicializacao in ini_var.items():
+                    status = True
+                    nome_inicializacao = nome_var_inicializacao
+
+                    declaracao_variavel = tabela_simbolos.loc[(tabela_simbolos['lex'] == nome_variavel) & (
+                        tabela_simbolos['escopo'] == escopo_variavel) & (tabela_simbolos['iniciacao'] == 'N')]
+                    if len(declaracao_variavel) == 0:
+                        declaracao_variavel_global = tabela_simbolos.loc[(tabela_simbolos['lex'] == nome_variavel) & (
+                            tabela_simbolos['escopo'] == 'global') & (tabela_simbolos['iniciacao'] == 'N')]
+                        if len(declaracao_variavel_global) > 0:
+                            tipo_variavel_novo = declaracao_variavel_global['tipo'].values[0]
+                    else:
+                        tipo_variavel_novo = declaracao_variavel['tipo'].values[0]
+
+                    if nome_var_inicializacao in funcoes:
+                        tipo_atribuicao = tabela_simbolos.loc[tabela_simbolos['lex']
+                                                              == nome_var_inicializacao, 'tipo'].values
+                        if len(tipo_atribuicao) > 0:
+                            tipo_atribuicao = tipo_atribuicao[0]
+
+                        if tipo_variavel_novo == tipo_atribuicao:
+                            status = True
+                        else:
+                            status = False
+
+                        print(status)
+                        if not status:
+                            print(error_handler.newError('WAR-ATR-TIP-INCOMP'))
+
+                        return status, tipo_var_inicializacao, tipo_variavel_novo, nome_inicializacao
+
+                    elif nome_var_inicializacao in variaveis['lex'].values:
+                        tipo_atribuicao = tabela_simbolos.loc[(tabela_simbolos['lex'] == nome_var_inicializacao) & (
+                            tabela_simbolos['escopo'] == escopo_variavel) & (tabela_simbolos['iniciacao'] == 'N'), 'tipo'].values
+                        if len(tipo_atribuicao) == 0:
+                            tipo_atribuicao = tabela_simbolos.loc[(tabela_simbolos['lex'] == nome_var_inicializacao) & (
+                                tabela_simbolos['escopo'] == 'global') & (tabela_simbolos['iniciacao'] == 'N'), 'tipo'].values
+
+                        if len(tipo_atribuicao) > 0:
+                            tipo_atribuicao = tipo_atribuicao[0]
+
+                        if tipo_variavel_novo and tipo_atribuicao:
+                            if tipo_variavel_novo == tipo_atribuicao:
+                                status = True
+                            else:
+                                status = False
+
+                        if not status:
+                            print(error_handler.newError('WAR-ATR-TIP-INCOMP'))
+                    elif tipo_var_inicializacao == 'inteiro' or tipo_var_inicializacao == 'flutuante':
+                        declaracao_variavel_valor = tabela_simbolos.loc[(tabela_simbolos['lex'] == nome_variavel) & (
+                            tabela_simbolos['escopo'] == escopo_variavel) & (tabela_simbolos['iniciacao'] == 'N')]
+                        if len(declaracao_variavel_valor) == 0:
+                            declaracao_variavel_global_valor = tabela_simbolos.loc[(tabela_simbolos['lex'] == nome_variavel) & (
+                                tabela_simbolos['escopo'] == 'global') & (tabela_simbolos['iniciacao'] == 'N')]
+                            if len(declaracao_variavel_global_valor) > 0:
+                                tipo_variavel_novo = declaracao_variavel_global_valor['tipo'].values[0]
+                        else:
+                            tipo_variavel_novo = declaracao_variavel['tipo'].values[0]
+
+                        if '.' in str(nome_var_inicializacao):
+                            tipo_var = 'flutuante'
+
+                        status, tipo_variavel_novo = retorna_tipo_var(
+                            tipo_var, nome_var_inicializacao, tipo_variavel_novo)
+
+                        if not status:
+                            print(error_handler.newError('WAR-ATR-TIP-INCOMP'))
+
+                    tipo_var_inicializacao_retorno = tipo_var_inicializacao
+
+    return status, tipo_var_inicializacao_retorno, tipo_variavel_novo, nome_inicializacao
+
+
+
 def verifica_regras_semanticas(tab_sym):  # função principal
 
     # variaveis globais
     variaveis = tab_sym.loc[tab_sym['funcao'] == '0']
     funcoes = tab_sym.loc[tab_sym['funcao']
                           != '0', 'lex'].unique()  # funcoes declaradas
-
     for var in variaveis['lex'].unique():  # verifica se variavel foi declarada
         checa_declaracao_variavel(
             variaveis, var, tab_sym, error_handler)
@@ -553,7 +636,20 @@ def verifica_regras_semanticas(tab_sym):  # função principal
             chamada = {'lex': func['lex'], 'parametros': parametros}
             # verifica se funcao foi chamada
             checa_chamada_funcao(chamada, tab_sym, error_handler)
+    for i in variaveis.index:
+        inicializacao_variaveis = tab_sym.loc[(tab_sym['lex'] == variaveis['lex'][i]) & (tab_sym['escopo'] == variaveis['escopo'][i]) & (tab_sym['iniciacao'] == 'S')]
+        inicializacao_variaveis = inicializacao_variaveis['valor'].values
 
+        inicializacao_variaveis_valores = []
+        if len(inicializacao_variaveis) > 0:
+            inicializacao_variaveis_valores = inicializacao_variaveis
+
+        # Depois de pegar o valor é necessário verificar se é uma variável ou uma função
+        # Fazer uma função que retorna o tipo do valor atribuído
+        if len(inicializacao_variaveis_valores) > 0:
+            boolen_tipo_igual, tipo_variavel_atribuida, tipo_atribuicao, nome_variavel_inicializacao = verifica_tipo_atribuicao(variaveis.iloc[i], variaveis['tipo'][i], variaveis['escopo'][i], inicializacao_variaveis_valores, variaveis, funcoes, tab_sym)
+
+        i += 1
 
 if __name__ == "__main__":
     if(len(sys.argv) < 2):

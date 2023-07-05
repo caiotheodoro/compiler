@@ -1,0 +1,9 @@
+token,lex,tipo,dimensao,tamanho dimensional 1,tamnho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
+ID,func,inteiro,0,0,0,global,0,,1,"[{'x': ''}, {'y': ''}]",n/a
+ID,x,,0,0,0,global,1,,0,n/a,n/a
+ID,y,,0,0,0,global,1,,0,n/a,n/a
+ID,principal,inteiro,0,0,0,global,0,,1,"[{'x': ''}, {'y': ''}]",n/a
+ID,x,,0,0,0,global,1,,0,n/a,n/a
+ID,y,,0,0,0,global,1,,0,n/a,n/a
+ID,a,inteiro,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
+ID,func,inteiro,0,0,0,global,0,,chamada_funcao,[{'10': 'inteiro'}],n/a
