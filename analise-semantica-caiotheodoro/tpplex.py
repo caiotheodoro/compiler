@@ -12,36 +12,37 @@ logging.basicConfig(
 log = logging.getLogger()
 
 
-tokens = ["ID",  # identificador
-          # numerais
-          "NUM_NOTACAO_CIENTIFICA",  # ponto flutuante em notaçao científica
-          "NUM_PONTO_FLUTUANTE",  # ponto flutuate
-          "NUM_INTEIRO",  # inteiro
-          # operadores binarios
-          "MAIS",  # +
-          "MENOS",  # -
-          "VEZES",  # *
-          "DIVIDE",  # /
-          "E",  # &&
-          "OU",  # ||
-          "DIFERENTE",  # <>
-          "MENOR_IGUAL",  # <=
-          "MAIOR_IGUAL",  # >=
-          "MENOR",  # <
-          "MAIOR",  # >
-          "IGUAL",  # =
-          # operadores unarios
-          "NAO",  # !
-          # simbolos
-          "ABRE_PARENTESE",  # (
-          "FECHA_PARENTESE",  # )
-          "ABRE_COLCHETE",  # [
-          "FECHA_COLCHETE",  # ]
-          "VIRGULA",  # ,
-          "DOIS_PONTOS",  # :
-          "ATRIBUICAO",  # :=
-          # 'COMENTARIO', # {***}
-          ]
+tokens = [  
+    # identificador
+    "ID", 
+    # numerais
+    "NUM_NOTACAO_CIENTIFICA",   # ponto flutuante em notaçao científica
+    "NUM_PONTO_FLUTUANTE",      # ponto flutuate
+    "NUM_INTEIRO",              # inteiro
+    # operadores binarios
+    "MAIS",                     # +
+    "MENOS",                    # -
+    "MULTIPLICACAO",            # *
+    "DIVISAO",                  # /
+    "E_LOGICO",                 # &&
+    "OU_LOGICO",                # ||
+    "DIFERENCA",                # <>
+    "MENOR_IGUAL",              # <=
+    "MAIOR_IGUAL",              # >=
+    "MENOR",                    # <
+    "MAIOR",                    # >
+    "IGUAL",                    # =
+    # operadores unarios
+    "NEGACAO",                  # !
+    # simbolos
+    "ABRE_PARENTESE",           # (
+    "FECHA_PARENTESE",          # )
+    "ABRE_COLCHETE",            # [
+    "FECHA_COLCHETE",           # ]
+    "VIRGULA",                  # ,
+    "DOIS_PONTOS",              # :
+    "ATRIBUICAO",               # :=
+]
 
 reserved_words = {
     "se": "SE",

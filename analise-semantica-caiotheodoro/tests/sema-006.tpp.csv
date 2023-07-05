@@ -1,11 +1,14 @@
-token,lex,tipo,dimensao,tamanho dimensional 1,tamnho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
-ID,func,inteiro,0,0,0,global,0,,1,"[{'x': ''}, {'y': ''}]",n/a
-ID,x,,0,0,0,global,1,,0,n/a,n/a
-ID,y,,0,0,0,global,1,,0,n/a,n/a
-ID,principal,inteiro,0,0,0,global,0,,1,"[{'x': ''}, {'y': ''}]",n/a
-ID,x,,0,0,0,global,1,,0,n/a,n/a
-ID,y,,0,0,0,global,1,,0,n/a,n/a
-ID,a,flutuante,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,c,flutuante,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,b,inteiro,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,func,inteiro,0,0,0,global,0,,chamada_funcao,"[{'10': 'inteiro'}, {'5': 'inteiro'}]",n/a
+token,lex,tipo,dimensao,tamanho dimensional 1,tamanho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
+ID,func,inteiro,0,0,0,func,0,6,S,"[{'x': 'inteiro'}, {'y': 'inteiro'}]",[]
+ID,x,inteiro,0,0,0,func,S,6,0,[],[]
+ID,y,inteiro,0,0,0,func,S,6,0,[],[]
+ID,retorna,inteiro,0,0,0,func,0,7,S,[],"[{'x': 'inteiro'}, {'y': 'inteiro'}]"
+ID,principal,inteiro,0,0,0,principal,0,10,S,[],[]
+ID,a,flutuante,0,0,0,principal,0,11,0,[],[]
+ID,c,flutuante,0,0,0,principal,0,12,0,[],[]
+ID,b,inteiro,0,0,0,principal,0,13,0,[],[]
+ID,b,flutuante,0,0,0,principal,S,15,0,[],[{'c': 'flutuante'}]
+ID,a,inteiro,0,0,0,principal,S,17,0,[],"[{'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}]"
+ID,a,inteiro,0,0,0,principal,S,17,0,[],"[{'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}]"
+ID,a,inteiro,0,0,0,principal,S,17,0,[],"[{'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}]"
+ID,func,inteiro,0,0,0,principal,0,17,chamada_funcao,"[{'10': 'inteiro'}, {'5': 'inteiro'}]",[]

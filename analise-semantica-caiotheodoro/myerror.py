@@ -9,16 +9,21 @@ class MyError():
     self.config = configparser.RawConfigParser()
     self.config.read('ErrorMessages.properties')
     self.errorType = et
+    self.messageList = []
 
   def newError(self, key, **data):
     message = ''
     if(key):
       message = self.config.get(self.errorType, key)
     if(data):
-      for key, value in data.items():
-        message = message.format(value)
-
-    return message
+      message = message.format(*data['value'])
+      
+      if message not in self.messageList:
+        
+        self.messageList.append(message)
+        return message
+      else:
+        return ''
     #print(message)
     #frame = inspect.stack()[1][0]
 

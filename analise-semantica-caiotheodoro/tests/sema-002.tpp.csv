@@ -1,5 +1,6 @@
-token,lex,tipo,dimensao,tamanho dimensional 1,tamnho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
-ID,a,inteiro,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,b,flutuante,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,c,inteiro,1,flutuante,"['1.2', 0]",global,0,declaracao_variaveis,0,n/a,n/a
-ID,principal,inteiro,0,0,0,global,0,,1,[],n/a
+token,lex,tipo,dimensao,tamanho dimensional 1,tamanho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
+ID,a,inteiro,0,0,0,global,0,6,0,[],[]
+ID,b,flutuante,0,0,0,global,0,7,0,[],[]
+ID,c,inteiro,1,1.2,0,global,0,8,0,[],[]
+ID,principal,inteiro,0,0,0,principal,0,10,S,[],[]
+ID,c,inteiro,1,5.8,0,principal,S,11,0,[],[{'10': 'inteiro'}]

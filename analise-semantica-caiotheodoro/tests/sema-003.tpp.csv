@@ -1,3 +1,3 @@
-token,lex,tipo,dimensao,tamanho dimensional 1,tamnho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
-ID,principal,inteiro,0,0,0,global,0,,1,[],n/a
-ID,func,vazio,0,0,0,global,,,chamada_funcao,[],n/a
+token,lex,tipo,dimensao,tamanho dimensional 1,tamanho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
+ID,principal,inteiro,0,0,0,principal,0,4,S,[],[]
+ID,func,vazio,0,0,0,principal,0,5,chamada_funcao,[],[]

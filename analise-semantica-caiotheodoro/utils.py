@@ -132,7 +132,7 @@ symbol_table = [
     'tipo',
     'dimensao',
     "tamanho dimensional 1",
-    'tamnho dimensional 2',
+    'tamanho dimensional 2',
     'escopo',
     'iniciacao',
     'linha',
