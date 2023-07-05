@@ -65,7 +65,7 @@ def encontra_indice_retorno(expressao):
         tipo_retorno, indice = encontra_indice_retorno(
             filho)  # processa a expressao recursivamente
 
-    return tipo_retorno, indice
+    return tipo_retorno, indice  # retorna o tipo do retorno e o indice
 
 
 def encontra_atribuicao_valor(expressao, valss):
@@ -115,13 +115,13 @@ def encontra_valores_retorno(retorna, retorno):
     return retorno  # retorna o tipo do retorno
 
 
-def encontra_tipo_nome_parametro(parametro, tipo, nome):
+def encontra_tipo_nome_parametro(parametro, tipo, idx):
 
     for param in parametro.children:  # percorre os filhos do no parametro
-        # retorna o tipo e o nome do parametro
-        tipo, nome = processa_parametro(param, tipo, nome)
+        # retorna o tipo e o idx do parametro
+        tipo, idx = processa_parametro(param, tipo, idx)
 
-    return tipo, nome  # retorna o tipo e o nome do parametro
+    return tipo, idx  # retorna o tipo e o idx do parametro
 
 
 def encontra_parametro_funcao(no, parametros):
@@ -130,10 +130,10 @@ def encontra_parametro_funcao(no, parametros):
 
     for n in no.children:
         if (no.label == 'parametro'):
-            tipo, nome = encontra_tipo_nome_parametro(
-                no, '', '')  # retorna o tipo e o nome do parametro
+            tipo, idx = encontra_tipo_nome_parametro(
+                no, '', '')  # retorna o tipo e o idx do parametro
 
-            parametro[nome] = tipo  # adiciona o parametro no dicionario
+            parametro[idx] = tipo  # adiciona o parametro no dicionario
 
             parametros.append(parametro)  # adiciona o parametro na lista
 
@@ -148,13 +148,13 @@ def encontra_parametros(no_parametro, parametros):  # encontra os parametros da 
     parametros = parametros
     parametro = {}
     tipo = ''
-    nome = ''
+    idx = ''
 
     for no in no_parametro.children:  # percorre os filhos do no parametro
         if (no.label == 'expressao'):
-            # retorna o tipo e o nome do parametro
-            tipo, nome = encontra_indice_retorno(no)
-            parametro[nome] = tipo  # adiciona o parametro no dicionario
+            # retorna o tipo e o idx do parametro
+            tipo, idx = encontra_indice_retorno(no)
+            parametro[idx] = tipo  # adiciona o parametro no dicionario
             # adiciona o dicionario na lista de parametros
             parametros.append(parametro)
 
@@ -177,7 +177,7 @@ def encontra_indice_retorno(expressao):
             return tipo_retorno, indice
 
         elif filhos.label == 'ID':
-            indice = filhos.children[0].label  # retorna o nome do ID
+            indice = filhos.children[0].label  # retorna o idx do ID
             tipo_retorno = 'parametro'  # retorna o tipo do ID
 
             return tipo_retorno, indice
@@ -259,9 +259,9 @@ def processa_declaracao_variaveis(filho, tab_sym, dim):
                       str(filho.children[0].children[0].children[0].label),
                       *dim,
                       escopo,
-                      'N',
+                      '0',
                       linha_declaracao,
-                      'N',
+                      '0',
                       'n/a',
                       'n/a'
                   ])  # insere na tabela de simbolos
@@ -280,18 +280,18 @@ def processa_declaracao_funcao(filho, tab_sym):
         linha_declaracao = filho.label.split(':')[1]  # retorna linha
 
     tipo, func_name, _, retorno, tipo_retorno, linha_retorno = encontra_dados_funcao(
-        filho, '', '', '', '', '', '')  # retorna tipo, nome, parametros, retorno, tipo_retorno, linha_retorno
+        filho, '', '', '', '', '', '')  # retorna tipo, idx, parametros, retorno, tipo_retorno, linha_retorno
 
     # se tipo for vazio, retorna vazio, senão retorna tipo
     tipo = tipo if tipo != '' else 'vazio'
 
     insere_tabela(tab_sym, ['ID', func_name, tipo, 0, 0,
-                  0, escopo, 'N', linha_declaracao, 'S', parametros, 'n/a'])  # insere na tabela de simbolos
+                  0, escopo, '0', linha_declaracao, '1', parametros, 'n/a'])  # insere na tabela de simbolos
 
     for p in parametros:
         for nome_param, tipo_param in p.items():  # para cada parametro, insere na tabela de simbolos
             insere_tabela(tab_sym, [
-                          'ID', nome_param, tipo_param, 0, 0, 0, escopo, 'S', linha_declaracao, 'N', 'n/a', 'n/a'])  # insere na tabela de simbolos
+                          'ID', nome_param, tipo_param, 0, 0, 0, escopo, '1', linha_declaracao, '0', 'n/a', 'n/a'])  # insere na tabela de simbolos
 
     if retorno and retorno != 'n/a':  # se houver retorno, insere na tabela de simbolos
         tipo_ret_dict = []  # lista de retorno
@@ -302,7 +302,7 @@ def processa_declaracao_funcao(filho, tab_sym):
                 tipo_variaveis_retorno = tipo_retorno[0] if len(
                     tipo_retorno) > 0 else 'vazio'  # se não tiver tipo, retorna vazio
 
-                # cria um dicionario com o nome e o tipo do retorno
+                # cria um dicionario com o idx e o tipo do retorno
                 tipo_ret = {nome_retorno: tipo_variaveis_retorno}
                 # adiciona na lista de retorno
                 tipo_ret_dict.append(tipo_ret)
@@ -314,7 +314,7 @@ def processa_declaracao_funcao(filho, tab_sym):
         tipo = 'flutuante' if 'flutuante' in tipos else 'inteiro'
 
         insere_tabela(tab_sym, ['ID', 'retorna', tipo, 0, 0, 0, escopo,
-                                'N', linha_retorno, 'S', 'n/a', tipo_ret_dict])  # insere na tabela de simbolos
+                                '0', linha_retorno, '1', 'n/a', tipo_ret_dict])  # insere na tabela de simbolos
 
 
 def retorna_funcao(tab_sym):
@@ -335,7 +335,7 @@ def retorna_funcao(tab_sym):
         global variavel_nao_declarada
 
         for ret in retorno:  # para cada retorno
-            for nome_retorno, tipo_retorno in ret.items():  # para cada nome e tipo do retorno
+            for nome_retorno, tipo_retorno in ret.items():  # para cada idx e tipo do retorno
                 tipo_retorno = tab_sym.loc[(tab_sym['lex'] == nome_retorno) & (
                     tab_sym['escopo'] == escopo)]  # pega o tipo do retorno
 
@@ -374,7 +374,7 @@ def chamada_funcao_aux(tab_sym, filho):
     parametros = []
     iniciacao = ''
     linha_declaracao = ''
-    # encontra o nome da funcao
+    # encontra o idx da funcao
     func_name = filho.children[0].children[0].label
     # encontra os parametros da chamada da funcao
     parametros = encontra_parametros(filho, parametros)
@@ -392,17 +392,17 @@ def chamada_funcao_aux(tab_sym, filho):
 
     if len(parametros) >= 1:  # se a funcao tiver parametros
         for param in parametros:  # para cada parametro
-            for nome_param, tipo_param in param.items():  # para cada nome e tipo do parametro
+            for nome_param, tipo_param in param.items():  # para cada idx e tipo do parametro
                 parametro_dic = {}
                 parametro_inicializado = tab_sym.loc[(
-                    tab_sym['lex'] == nome_param) & (tab_sym['iniciacao'] == 'S')]  # encontra o parametro na tabela de simbolos
-                # cria um dicionario com o nome e tipo do parametro
+                    tab_sym['lex'] == nome_param) & (tab_sym['iniciacao'] == '1')]  # encontra o parametro na tabela de simbolos
+                # cria um dicionario com o idx e tipo do parametro
                 parametro_dic[nome_param] = tipo_param
                 # adiciona o dicionario na lista de parametros
                 parametro_list.append(parametro_dic)
 
                 # se o parametro foi inicializado
-                iniciacao = 'S' if len(parametro_inicializado) > 0 else 'N'
+                iniciacao = '1' if len(parametro_inicializado) > 0 else '0'
 
     insere_tabela(tab_sym, ['ID', filho.children[0].children[0].label, tipo_funcao, 0, 0, 0,
                             escopo, iniciacao, linha_declaracao, 'chamada_funcao', parametro_list, 'n/a'])  # insere na tabela de simbolos
@@ -420,7 +420,7 @@ def atribuicao_funcao_aux(tab_sym, filho):
         for valor, tipo in i.items():  # para cada valor e tipo da expressao
             if tipo == 'parametro':  # se for parametro
                 variavel_declarada = tab_sym.loc[(
-                    tab_sym['lex'] == valor) & (tab_sym['iniciacao'] == 'N')]  # procura na tabela de simbolos
+                    tab_sym['lex'] == valor) & (tab_sym['iniciacao'] == '0')]  # procura na tabela de simbolos
 
                 if len(variavel_declarada) > 0:  # se tiver na tabela de simbolos
                     tipo = variavel_declarada['tipo'].values[0]  # pega o tipo
@@ -433,7 +433,7 @@ def atribuicao_funcao_aux(tab_sym, filho):
             valss.append(valor_atribuido)  # adiciona na lista de valss
 
             var_tipo = tab_sym.loc[(tab_sym['lex'] == variavel_atribuicao_nome) & (
-                tab_sym['iniciacao'] == 'N') & (tab_sym['escopo'] == escopo)]  # procura na tabela de simbolos
+                tab_sym['iniciacao'] == '0') & (tab_sym['escopo'] == escopo)]  # procura na tabela de simbolos
 
             if tipo == 'ID':  # se for ID
                 global_var = var_tipo
@@ -444,7 +444,7 @@ def atribuicao_funcao_aux(tab_sym, filho):
 
             if len(var_tipo) == 0 and (tipo != 'inteiro' and tipo != 'flutuante'):
                 global_var = tab_sym.loc[(
-                    tab_sym['lex'] == variavel_atribuicao_nome) & (tab_sym['iniciacao'] == 'N')]
+                    tab_sym['lex'] == variavel_atribuicao_nome) & (tab_sym['iniciacao'] == '0')]
 
                 if len(global_var) > 0:
                     global_var = global_var['tipo'].values
@@ -456,11 +456,11 @@ def atribuicao_funcao_aux(tab_sym, filho):
                 var_tipo = tipo_variavel_valor  # atribui o tipo
 
             dimensoes = tab_sym.loc[(tab_sym['lex'] == variavel_atribuicao_nome) & (
-                tab_sym['iniciacao'] == 'N')]  # procura na tabela de simbolos
+                tab_sym['iniciacao'] == '0')]  # procura na tabela de simbolos
             dims[0] = tab_sym.loc[(tab_sym['lex'] == variavel_atribuicao_nome) & (
-                tab_sym['iniciacao'] == 'N')]  # procura na tabela de simbolos
+                tab_sym['iniciacao'] == '0')]  # procura na tabela de simbolos
             dims[1] = tab_sym.loc[(tab_sym['lex'] == variavel_atribuicao_nome) & (
-                tab_sym['iniciacao'] == 'N')]  # procura na tabela de simbolos
+                tab_sym['iniciacao'] == '0')]  # procura na tabela de simbolos
 
             dimensoes = dimensoes['dimensao'].values  # pega a dimensao
 
@@ -483,7 +483,7 @@ def atribuicao_funcao_aux(tab_sym, filho):
                     filho, 0, 0, 0)  # verifica as dimensoes
 
             insere_tabela(tab_sym, ['ID', variavel_atribuicao_nome, var_tipo, dimensoes,
-                                    dims[0], dims[1], escopo, 'S', linha_declaracao, 'N', 'n/a', valss])  # insere na tabela de simbolos
+                                    dims[0], dims[1], escopo, '1', linha_declaracao, '0', 'n/a', valss])  # insere na tabela de simbolos
 
 
 def tab_sym_aux(tree, tab_sym):  # monta a tabela de simbolos
@@ -533,9 +533,9 @@ def retorna_tipo_var(tipo_var_inicializacao, tipo_var, tipo_variavel_novo):
 def verifica_regras_semanticas(tab_sym):  # função principal
 
     # variaveis globais
-    variaveis = tab_sym.loc[tab_sym['funcao'] == 'N']
+    variaveis = tab_sym.loc[tab_sym['funcao'] == '0']
     funcoes = tab_sym.loc[tab_sym['funcao']
-                          != 'N', 'lex'].unique()  # funcoes declaradas
+                          != '0', 'lex'].unique()  # funcoes declaradas
 
     for var in variaveis['lex'].unique():  # verifica se variavel foi declarada
         checa_declaracao_variavel(
@@ -548,7 +548,7 @@ def verifica_regras_semanticas(tab_sym):  # função principal
 
     for _, func in tab_sym.iterrows():  # verifica se funcao foi chamada
         if func['lex'] in funcoes:
-            parametros = tab_sym.loc[(tab_sym['funcao'] == 'N') &
+            parametros = tab_sym.loc[(tab_sym['funcao'] == '0') &
                                      (tab_sym['escopo'] == func['lex'])]  # parametros da funcao
             chamada = {'lex': func['lex'], 'parametros': parametros}
             # verifica se funcao foi chamada

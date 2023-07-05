@@ -248,7 +248,7 @@ def processa_cabecalho(filho, nome_funcao):
 def checa_declaracao_variavel(varss, var, tab_sym, error_handler):
     for _, row in varss.iterrows():
         declaracoes = tab_sym.loc[(tab_sym['lex'] == row['lex']) &
-                                  (tab_sym['iniciacao'] == 'N') &
+                                  (tab_sym['iniciacao'] == '0') &
                                   (tab_sym['escopo'] == row['escopo'])]  # procura por declaracoes de variaveis
 
     if len(declaracoes) > 1:
@@ -259,7 +259,7 @@ def checa_declaracao_variavel(varss, var, tab_sym, error_handler):
 def checa_inicializacao_variavel(tab_sym, var, error_handler):
     inicializacao_variaveis = tab_sym.loc[(tab_sym['lex'] == var['lex']) &
                                           (tab_sym['escopo'] == var['escopo']) &
-                                          (tab_sym['iniciacao'] == 'S')]  # procura por inicializacoes de variaveis
+                                          (tab_sym['iniciacao'] == '1')]  # procura por inicializacoes de variaveis
     if len(inicializacao_variaveis) == 0:  # se nao tiver inicializacao, printa o erro
         print(error_handler.newError(
             'WAR-SEM-VAR-DECL-NOT-USED', value=var['lex']))
@@ -267,10 +267,10 @@ def checa_inicializacao_variavel(tab_sym, var, error_handler):
 
 # funcao para checar se a funcao tem retorno
 def checa_retorno_funcao(tab_sym, error_handler):
-    main_func = tab_sym.loc[(tab_sym['funcao'] == 'S') & (
+    main_func = tab_sym.loc[(tab_sym['funcao'] == '1') & (
         tab_sym['lex'] == 'principal')]  # procura pela funcao principal
     if not main_func.empty:
-        retorno_principal = tab_sym.loc[(tab_sym['funcao'] == 'S') &
+        retorno_principal = tab_sym.loc[(tab_sym['funcao'] == '1') &
                                         (tab_sym['escopo'] == 'principal') &
                                         (tab_sym['lex'] == 'retorna')]  # procura pelo retorno da funcao principal
         if retorno_principal.empty:
@@ -282,7 +282,7 @@ def checa_retorno_funcao(tab_sym, error_handler):
 
 
 def checa_chamada_funcao(chamada, tab_sym, error_handler):
-    declaracao_funcao = tab_sym.loc[(tab_sym['funcao'] == 'S') & (
+    declaracao_funcao = tab_sym.loc[(tab_sym['funcao'] == '1') & (
         tab_sym['lex'] == chamada['lex'])]  # procura pela declaracao da funcao
     if declaracao_funcao.empty:
         print(error_handler.newError(
