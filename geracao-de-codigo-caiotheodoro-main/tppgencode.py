@@ -8,7 +8,8 @@ import ply.yacc as yacc
 import sys
 import os
 from utils import instancia_llvm, instancia_modulo, op_list, comp_list
-from llvmlite import llvmir as llvmir
+from llvmlite import ir as llvmir
+from llvmlite import binding
 
 
 from sys import argv, exit
@@ -43,11 +44,13 @@ lista_escopo = []
 parametros_lista = []
 
 
-def verifica_expressao_parametros(parametro, escopo, parametros_lista, encontra_variavel_declarada):
+def verifica_expressao_parametros(parametro, escopo, parametros_lista):
     funcao_tab_sym = tab_sym[(
         tab_sym['lex'] == escopo) & (tab_sym['funcao'] == 'S')]
-    parametros_funcao_tab_sym = funcao_tab_sym['parametros'].values[0]
 
+    parametros_funcao_tab_sym = ''
+    if not funcao_tab_sym.empty:
+        parametros_funcao_tab_sym = funcao_tab_sym['parametros'].values[0]
     funcao_variaveis_parametro = [
         retorno_nome_tab_sym for param_tab_sym in parametros_funcao_tab_sym for retorno_nome_tab_sym, _ in param_tab_sym.items()]
 
@@ -166,13 +169,15 @@ def encontra_funcao_declarada(nome_funcao):
 def encontra_variavel_declarada(nome_variavel):
     variavel_encontrada = ''
 
-    if nome_variavel + escopo in nome_escopo_alocada:
+    # Primeiro procuro no escopo local e depois no global
+    if nome_variavel+escopo in nome_escopo_alocada:
+        # Pegar a posição onde se encontra esse valor e acessar as variaveis declaradas
         variavel_encontrada = variaveis_declaradas[nome_escopo_alocada.index(
-            nome_variavel + escopo)]
+            nome_variavel+escopo)]
     else:
-        if nome_variavel + 'global' in nome_escopo_alocada:
+        if nome_variavel+'global' in nome_escopo_alocada:
             variavel_encontrada = variaveis_declaradas[nome_escopo_alocada.index(
-                nome_variavel + 'global')]
+                nome_variavel+'global')]
 
     return variavel_encontrada
 
@@ -294,46 +299,54 @@ def gera_codigo(arvore):
                 # Defino o retorno da função onde a variável foi declarada
         elif ('declaracao_funcao' in no.label):
             linha = no.label.split(':')
-            linha = linha[1]
+            if len(linha) > 1:
+                linha = linha[1]
+            funcao_encontrada = None
+            if len(tab_sym['linha']) == len(linha):
+                funcao_encontrada = tab_sym[tab_sym['linha'] == linha]
 
-            # procuro a função declarado nessa linha
-            funcao_encontrada = tab_sym[tab_sym['linha'] == linha]
+            if funcao_encontrada is not None:
+                escopo = funcao_encontrada['lex'].values[0]
 
-            escopo = funcao_encontrada['lex'].values[0]
-
+            criacao_funcao = llvmir.FunctionType(llvmir.IntType(32), [])
             # Cria a função, porém é necessário verificar o tipo da função
             if ('inteiro' == no.children[0].label):
-                if len(funcao_encontrada['parametros'].values[0]) == 0:
-                    criacao_funcao = llvmir.FunctionType(
-                        llvmir.IntType(32), ())
+                if funcao_encontrada is not None:
+                    if len(funcao_encontrada['parametros'].values[0]) == 0:
+                        criacao_funcao = llvmir.FunctionType(
+                            llvmir.IntType(32), ())
 
-                elif len(funcao_encontrada['parametros'].values[0]) == 1:
-                    criacao_funcao = llvmir.FunctionType(
-                        llvmir.IntType(32), llvmir.IntType(32))
+                    elif len(funcao_encontrada['parametros'].values[0]) == 1:
+                        criacao_funcao = llvmir.FunctionType(
+                            llvmir.IntType(32), llvmir.IntType(32))
 
-                else:
-                    criacao_funcao = llvmir.FunctionType(
-                        llvmir.IntType(32), [llvmir.IntType(32), llvmir.IntType(32)])
+                    else:
+                        criacao_funcao = llvmir.FunctionType(
+                            llvmir.IntType(32), [llvmir.IntType(32), llvmir.IntType(32)])
 
             # Declara a função
-            if funcao_encontrada['lex'].values[0] == 'principal':
-                declaracao_funcao = llvmir.Function(
-                    modulo, criacao_funcao, name='main')
-                lista_escopo.append('main')
-                lista_declaracao_funcao.append(declaracao_funcao)
+            declaracao_funcao = llvmir.Function(
+                modulo, criacao_funcao, name='main')
+            if funcao_encontrada is not None:
+                if funcao_encontrada['lex'].values[0] == 'principal':
+                    declaracao_funcao = llvmir.Function(
+                        modulo, criacao_funcao, name='main')
+                    lista_escopo.append('main')
+                    lista_declaracao_funcao.append(declaracao_funcao)
 
-            else:
-                # Necessário verifica se tem parâmetros
-                declaracao_funcao = llvmir.Function(
-                    modulo, criacao_funcao, name=funcao_encontrada['lex'].values[0])
-                lista_escopo.append(funcao_encontrada['lex'].values[0])
-                lista_declaracao_funcao.append(declaracao_funcao)
+                else:
+                    # Necessário verifica se tem parâmetros
+                    declaracao_funcao = llvmir.Function(
+                        modulo, criacao_funcao, name=funcao_encontrada['lex'].values[0])
+                    lista_escopo.append(funcao_encontrada['lex'].values[0])
+                    lista_declaracao_funcao.append(declaracao_funcao)
 
-            parametros_funcao = funcao_encontrada['parametros'].values[0]
+            parametros_funcao = ''
+            if funcao_encontrada is not None:
+                parametros_funcao = funcao_encontrada['parametros'].values[0]
 
             # Passa por todos os argumentos e declara eles como argumentos
             quantidade_parametros = 0
-
             for parametros in parametros_funcao:
                 for param_nome, _ in parametros.items():
                     declaracao_funcao.args[quantidade_parametros].name = param_nome
@@ -352,13 +365,16 @@ def gera_codigo(arvore):
 
         elif ('retorna' in no.label):
             linha = no.label.split(':')
-            linha = linha[1]
+            if len(linha) > 1:
+                linha = linha[1]
 
             # Pesquiso o retorno na tabela de símbolos utilizando a linha declarada
-            retorno_encontrado = tab_sym[(
-                tab_sym['lex'] == 'retorna') & (tab_sym['linha'] == linha)]
-
-            retorno_valor = retorno_encontrado['valor'].values[0]
+            retorno_encontrado = {}
+            if len(tab_sym['linha']) == len(linha):
+                retorno_encontrado = tab_sym[(
+                    tab_sym['lex'] == 'retorna') & (tab_sym['linha'] == linha)]
+            if retorno_encontrado:
+                retorno_valor = retorno_encontrado['valor'].values[0]
 
             # Pego o último da pilha de blocos de saída
             topo_bloco_saida = pilha_bloco_saida.pop()
@@ -368,31 +384,34 @@ def gera_codigo(arvore):
                 builder.branch(topo_bloco_saida)
 
             # Adiciona o bloco de saída
-            builder.position_at_end(topo_bloco_saida)
+            if topo_bloco_saida:
+                builder.position_at_end(topo_bloco_saida)
 
             variavel_retornada_encontrada = ''
 
             # Está retornando apena uma variável ou um valor
             if len(no.children) == 1:
                 # Cria o valor de retorno, verificar ainda o retorno correto de cada função
-                if ('inteiro' == retorno_encontrado['tipo'].values[0]):
-                    for ret in retorno_valor:
-                        for variavel_retornada, tipo_retornado in ret.items():
-                            variavel_retornada_encontrada = variavel_retornada
+                if retorno_encontrado:
+                    if ('inteiro' == retorno_encontrado['tipo'].values[0]):
+                        for ret in retorno_valor:
+                            for variavel_retornada, tipo_retornado in ret.items():
+                                variavel_retornada_encontrada = variavel_retornada
 
-                elif ('float' == retorno_encontrado['tipo'].values[0]):
-                    pass
+                    elif ('float' == retorno_encontrado['tipo'].values[0]):
+                        pass
 
                 # Verifico se é um dígito
-                if variavel_retornada_encontrada.isdigit():
-                    retorno_zero = llvmir.Constant(
-                        llvmir.IntType(32), variavel_retornada)
-                    builder.ret(retorno_zero)
-                else:
-                    # Estou retornando uma variável
-                    declaracao = encontra_variavel_declarada(
-                        variavel_retornada_encontrada)
-                    builder.ret(builder.load(declaracao, ""))
+                if variavel_retornada_encontrada:
+                    if variavel_retornada_encontrada.isdigit():
+                        retorno_zero = llvmir.Constant(
+                            llvmir.IntType(32), variavel_retornada)
+                        builder.ret(retorno_zero)
+                    else:
+                        # Estou retornando uma variável
+                        declaracao = encontra_variavel_declarada(
+                            variavel_retornada_encontrada)
+                        builder.ret(builder.load(declaracao, ""))
 
             else:
                 # Está retornando uma expressão
@@ -410,7 +429,8 @@ def gera_codigo(arvore):
                     funcao_variaveis_parametro = []
                     funcao_tab_sym = tab_sym[(
                         tab_sym['lex'] == escopo) & (tab_sym['funcao'] == 'S')]
-                    parametros_funcao_tab_sym = funcao_tab_sym['parametros'].values[0]
+                    if funcao_tab_sym:
+                        parametros_funcao_tab_sym = funcao_tab_sym['parametros'].values[0]
 
                     # Adiciona apenas o nome dos parametros recebidos na função em uma lista
                     for param_tab_sym in parametros_funcao_tab_sym:
@@ -543,12 +563,13 @@ def gera_codigo(arvore):
 
                             if valor_encontrado_atribuindo == '':
                                 # Significa que o valor que está sendo atribuído não é uma variável
-                                if tipo_variavel_atribuida == 'inteiro':
-                                    builder.store(llvmir.Constant(llvmir.IntType(
-                                        32), nome_variavel_atribuida), variavel_declaracao_encontrada)
-                                else:
-                                    builder.store(llvmir.Constant(llvmir.FloatType(), float(
-                                        nome_variavel_atribuida)), variavel_declaracao_encontrada)
+                                if variavel_declaracao_encontrada != '':
+                                    if tipo_variavel_atribuida == 'inteiro':
+                                        builder.store(llvmir.Constant(llvmir.IntType(
+                                            32), nome_variavel_atribuida), variavel_declaracao_encontrada)
+                                    else:
+                                        builder.store(llvmir.Constant(llvmir.FloatType(), float(
+                                            nome_variavel_atribuida)), variavel_declaracao_encontrada)
                             else:
                                 # Significa que o valor que está sendo atribuído é uma variável
                                 variavel_temporaria = builder.load(
@@ -621,10 +642,11 @@ def gera_codigo(arvore):
                                     # Se não estiver nas variaveis é necessário pegar os parametros
                                     if nome_variavel_atribuida_esquerda_encontrada == '':
                                         nome_variavel_atribuida_esquerda = verifica_expressao_parametros(
-                                            nome_variavel_atribuida_esquerda)
+                                            nome_variavel_atribuida_esquerda, escopo, parametros_lista)
 
                                         nome_variavel_atribuida_esquerda_encontrada = builder.alloca(
                                             llvmir.IntType(32), name='param')
+
                                         builder.store(
                                             nome_variavel_atribuida_esquerda, nome_variavel_atribuida_esquerda_encontrada)
 
@@ -667,17 +689,22 @@ def gera_codigo(arvore):
             # Tenho que procurar, utilizando o escopo atual, a declaração dessa função
             declaracao_funcao_encontrada = encontra_funcao_declarada(escopo)
 
-            # Crio os blocos de entrada e saída do 'se'
-            if_verdade_1 = declaracao_funcao_encontrada.append_basic_block(
-                'iftrue_1')
-            if_falso_1 = declaracao_funcao_encontrada.append_basic_block(
-                'iffalse_1')
+            print(declaracao_funcao_encontrada)
 
-            if_saida_1 = declaracao_funcao_encontrada.append_basic_block(
-                'ifend1')
-            # Adiciono o bloco de saída na pilha
-            pilha_bloco_saida.append(if_saida_1)
-            pilha_bloco_saida.append(if_falso_1)
+            # Crio os blocos de entrada e saída do 'se'
+            if declaracao_funcao_encontrada:
+                if_verdade_1 = declaracao_funcao_encontrada.append_basic_block(
+                    'iftrue_1')
+                if_falso_1 = declaracao_funcao_encontrada.append_basic_block(
+                    'iffalse_1')
+
+                if_saida_1 = declaracao_funcao_encontrada.append_basic_block(
+                    'ifend1')
+                # Adiciono o bloco de saída na pilha
+                print(if_saida_1, if_falso_1)
+
+                pilha_bloco_saida.append(if_saida_1)
+                pilha_bloco_saida.append(if_falso_1)
 
             # Tenho que carregar as variáveis para realizar a comparação
             comparacao_variavel_esquerda = encontra_variavel_declarada(
@@ -685,21 +712,24 @@ def gera_codigo(arvore):
             comparacao_variavel_direita = llvmir.Constant(
                 llvmir.IntType(32), int(no.children[2].label))
 
-            if len(no.children[1].children) > 0:
-                comparacao_operacao = builder.icmp_signed(str(no.children[1].children[0].label), builder.load(
-                    comparacao_variavel_esquerda), comparacao_variavel_direita)
-            else:
-                comparacao_operacao = builder.icmp_signed(str(no.children[1].label), builder.load(
-                    comparacao_variavel_esquerda), comparacao_variavel_direita)
+            if comparacao_variavel_esquerda:
+                if len(no.children[1].children) > 0:
+                    comparacao_operacao = builder.icmp_signed(str(no.children[1].children[0].label), builder.load(
+                        comparacao_variavel_esquerda), comparacao_variavel_direita)
+                else:
+                    comparacao_operacao = builder.icmp_signed(str(no.children[1].label), builder.load(
+                        comparacao_variavel_esquerda), comparacao_variavel_direita)
 
-            builder.cbranch(comparacao_operacao, if_verdade_1, if_falso_1)
+                builder.cbranch(comparacao_operacao, if_verdade_1, if_falso_1)
 
-            builder.position_at_end(if_verdade_1)
+                builder.position_at_end(if_verdade_1)
 
         elif ('senão' == no.label):
             # posiciona para o if falso
+            topo_bloco_saida = []
             bloco_falsidade = pilha_bloco_saida.pop()
-            topo_bloco_saida = pilha_bloco_saida.pop()
+            if len(pilha_bloco_saida) > 1:
+                topo_bloco_saida = pilha_bloco_saida.pop()
 
             builder.branch(topo_bloco_saida)
 
@@ -710,13 +740,15 @@ def gera_codigo(arvore):
         elif ('fim' == no.label):
             if 'se' == no.parent.label:
                 bloco_topo = pilha_bloco_saida.pop()
-                saida_bloco_principal = pilha_bloco_saida.pop()
+                saida_bloco_principal = []
+                if len(saida_bloco_principal) > 1:
+                    saida_bloco_principal = pilha_bloco_saida.pop()
 
                 # branch do bloco falsidade para o bloco fim do if
                 builder.branch(bloco_topo)
-
-                builder.position_at_end(bloco_topo)
-                builder.branch(saida_bloco_principal)
+                if bloco_topo:
+                    builder.position_at_end(bloco_topo)
+                    builder.branch(saida_bloco_principal)
 
                 pilha_bloco_saida.append(saida_bloco_principal)
 
@@ -833,8 +865,41 @@ if __name__ == "__main__":
 
         global constructor
 
-        llvm = instancia_llvm()
-        module = instancia_modulo('main.bc')
-        module.triple = llvm.get_default_triple()
-        module.data_layout = llvm.create_target_data_layout(module.triple)
-        TM = llvm.create_target_machine(module.triple)
+        binding.initialize()
+        binding.initialize_all_targets()
+        binding.initialize_native_target()
+        binding.initialize_native_asmprinter()
+
+        # Cria módulo
+        modulo = llvmir.Module('main.bc')
+        modulo.triple = binding.get_process_triple()
+        target = binding.Target.from_triple(modulo.triple)
+        target_machine = target.create_target_machine()
+        modulo.data_layout = target_machine.target_data
+
+        escreva_inteiro_funcao = llvmir.FunctionType(
+            llvmir.VoidType(), [llvmir.IntType(32)])
+        escreva_inteiro = llvmir.Function(
+            modulo, escreva_inteiro_funcao, "escrevaInteiro")
+
+        escreva_float_funcao = llvmir.FunctionType(
+            llvmir.VoidType(), [llvmir.FloatType()])
+        escreva_float = llvmir.Function(
+            modulo, escreva_float_funcao, "escrevaFlutuante")
+
+        leia_inteiro_funcao = llvmir.FunctionType(llvmir.IntType(32), [])
+        leia_inteiro = llvmir.Function(
+            modulo, leia_inteiro_funcao, "leiaInteiro")
+
+        leia_float_funcao = llvmir.FunctionType(llvmir.FloatType(), [])
+        leia_float = llvmir.Function(
+            modulo, leia_float_funcao, "leiaFlutuante")
+
+        gera_codigo(root)
+        arquivo = open('modulo_geracao_cod.ll', 'w')
+        arquivo.write(str(modulo))
+        arquivo.close()
+
+        print('------------------------------------')
+        print('Código gerado')
+        print(modulo)
