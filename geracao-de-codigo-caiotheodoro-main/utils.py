@@ -1,4 +1,6 @@
 import pandas as pd
+from llvmlite import binding
+from llvmlite import ir as llvmir
 
 
 def define_column(input, lexpos):
@@ -140,6 +142,9 @@ symbol_table = [
     'parametros',
     'valor',
 ]  # tabela de simbolos
+
+op_list = ['/', '+', '-', '*']
+comp_list = ['<', '>']
 
 
 def retira_no(no_remover, tokens, nodes):
@@ -294,3 +299,14 @@ def checa_chamada_funcao(chamada, tab_sym, error_handler):
         if qtd_params != quantidade_parametros_declaracao:
             print(error_handler.newError(
                 'ERR-PARAM-FUNC-INCOMP', value=chamada['lex']))  # se a quantidade de parametros for diferente, printa o erro
+
+
+def instancia_llvm():
+    llmv = binding.initialize()
+    llmv.initialize_native_target()
+    llmv.initialize_native_asmprinter()
+    return llmv
+
+
+def instancia_modulo(name):
+    return llvmir.Module(name)
