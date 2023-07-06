@@ -1,9 +1,10 @@
+
 from myerror import MyError
 from anytree.exporter import UniqueDotExporter
 from tppparser import retorna_arvore
 import sys
 import os
-from utils import conv_tipo, checa_chamada_funcao, checa_retorno_funcao, checa_inicializacao_variavel, checa_declaracao_variavel, aux_tipo, aux_simbolos_tabela, nodes, poda_arvore, processa_cabecalho, processa_lista_parametros, processa_tipo, tokens, processa_numero, processa_id, processa_parametro
+from utils import encontra_tipo_nome_parametro,  processa_retorno, processa_idx_ret, aux_tipo, aux_simbolos_tabela, nodes, poda_arvore, tokens, processa_numero, processa_id
 from sys import argv
 
 import logging
@@ -15,7 +16,7 @@ logging.basicConfig(
     format="%(filename)10s:%(lineno)4d:%(message)s"
 )
 log = logging.getLogger()
-
+avisos = []
 aux_dict = {}
 error_handler = MyError('SemaErrors')
 escopo = 'global'
@@ -40,9 +41,10 @@ def atribuicao_expressao(expressao, valss):
     for filho in expressao.children:
         if filho.label == 'numero':
             # verifica se o no é um numero
-            processa_numero(filho, aux_dict, valss)
+            valss = processa_numero(filho, aux_dict, valss)
         elif filho.label == 'ID':
-            processa_id(filho, aux_dict, valss)  # verifica se o no é um ID
+            # verifica se o no é um ID
+            valss = processa_id(filho, aux_dict, valss)
 
         # processa a expressao recursivamente
         valss = atribuicao_expressao(filho, valss)
@@ -50,223 +52,105 @@ def atribuicao_expressao(expressao, valss):
     return valss
 
 
-def encontra_indice_retorno(expressao):
-
-    indice = ''
-    tipo_retorno = ''
-    aux_dict = {}
-    valss = []
-    for filho in expressao.children:  # percorre os filhos do no retorna
-        if filho.label == 'numero':  # verifica se o no é um numero
-            return processa_numero(filho, aux_dict, valss)
-        elif filho.label == 'ID':  # verifica se o no é um ID
-            return processa_id(filho, aux_dict, valss)
-
-        tipo_retorno, indice = encontra_indice_retorno(
-            filho)  # processa a expressao recursivamente
-
-    return tipo_retorno, indice
+def insere_tabela(tab_sym, args):
+    tab_sym.loc[len(tab_sym)] = args  # insere na tabela de simbolos
 
 
-def encontra_atribuicao_valor(expressao, valss):
-    tipo_retorno = ''
-    aux_dict = {}
-    for filho in expressao.children:  # percorre os filhos do no retorna
-        if filho.label == 'numero':
-            return processa_numero(filho, aux_dict, valss)
-        elif filho.label == 'ID':
-            return processa_id(filho, aux_dict, valss)
-
-        tipo_retorno, _ = encontra_indice_retorno(filho)
-
-    return tipo_retorno, valss
-
-
-def encontra_expressao_retorno(retorna, lista_retorno):
-
-    for ret in retorna.children:  # percorre os filhos do no retorna
-        if ret.label == 'ID':  # verifica se o no é um ID
-            return processa_id(ret, aux_dict, lista_retorno)
-        if ret.label == 'numero':  # verifica se o no é um numero
-            return processa_numero(ret, aux_dict, lista_retorno)
-
-        lista_retorno = encontra_expressao_retorno(
-            ret, lista_retorno)  # processa a expressao recursivamente
-
-    return lista_retorno
+# verifica se as dimensoes sao iguais
+def verifica_dimensoes(tree, dimensao, indice_1, indice_2):
+    for filho in tree.children:  # percorre os filhos
+        if filho.label == 'indice':
+            # se o filho for um indice (matriz)
+            if filho.children[0].label == 'indice':
+                dimensao = 2
+                _, indice_1 = processa_idx_ret(filho.children[0].children[1])
+                _, indice_2 = processa_idx_ret(filho.children[2])
+            else:  # se o filho for um numero (vetor)
+                dimensao = 1
+                _, indice_1 = processa_idx_ret(filho.children[1])
+                indice_2 = 0
+        dimensao, indice_1, indice_2 = verifica_dimensoes(
+            filho, dimensao, indice_1, indice_2)
+    return dimensao, indice_1, indice_2
 
 
-def processa_expressao(ret):
-    global retorno
-    expressoes = ['expressao_aditiva',
-                  'expressao_multiplicativa']  # lista de expressoes
-    if ret.label in expressoes:  # verifica se o no é uma expressao
-        retorno = encontra_expressao_retorno(
-            ret, retorno)  # retorna o tipo do retorno
-        return retorno
-    encontra_valores_retorno(ret, retorno)
+def processa_retorno(filho, resultado):
+    if filho.label == 'inteiro' or filho.label == 'flutuante':  # se o filho for um numero
+        resultado.append(filho.children[0].label)
+    else:  # se o filho for um ID
+        for child in filho.children:
+            # processa o retorno recursivamente
+            processa_retorno(child, resultado)
+    return resultado
 
 
-def encontra_valores_retorno(retorna, retorno):
+def encontra_dados_funcao(no, tipo, nome_funcao, parametros, retorno_tipo_valor, tipo_retorno, linha_retorno):
 
-    for ret in retorna.children:  # percorre os filhos do no retorna
-        processa_expressao(ret)  # processa a expressao
+    global escopo
 
-    return retorno  # retorna o tipo do retorno
+    for filho in no.children:  # percorre os filhos
+        if filho.label == 'tipo':
+            tipo = filho.children[0].children[0].label  # retorna o tipo
 
+        elif filho.label == 'lista_parametros':  # se o filho for uma lista de parametros
+            if filho.children[0].label == 'vazio':
+                parametros = 'vazio'
+            else:
+                parametros = None
 
-def encontra_tipo_nome_parametro(parametro, tipo, nome):
+        elif filho.label == 'cabecalho':  # se o filho for um cabecalho
+            # retorna o nome da funcao
+            nome_funcao = filho.children[0].children[0].label
+            escopo = nome_funcao  # escopo recebe o nome da funcao
 
-    for param in parametro.children:  # percorre os filhos do no parametro
-        # retorna o tipo e o nome do parametro
-        tipo, nome = processa_parametro(param, tipo, nome)
+        # se o filho for um retorno
+        elif 'retorna' in filho.label and len(filho.label.split(':')) > 1:
+            retorno_tipo_valor = processa_retorno(
+                filho, [])  # retorna o tipo do retorno
+            linha_retorno = filho.label.split(':')[1]
+            tipo_retorno = 'vazio'
 
-    return tipo, nome  # retorna o tipo e o nome do parametro
+        encontra_dados_funcao(filho, tipo, nome_funcao, parametros,
+                              retorno_tipo_valor, tipo_retorno, linha_retorno)  # processa recursivamente
+
+    return tipo, nome_funcao, parametros, retorno_tipo_valor, tipo_retorno, linha_retorno
 
 
 def encontra_parametro_funcao(no, parametros):
 
-    parametro = {}
+    params = {}
 
     for n in no.children:
         if (no.label == 'parametro'):
             tipo, nome = encontra_tipo_nome_parametro(
                 no, '', '')  # retorna o tipo e o nome do parametro
 
-            parametro[nome] = tipo  # adiciona o parametro no dicionario
+            params[nome] = tipo  # insere na tabela de simbolos
 
-            parametros.append(parametro)  # adiciona o parametro na lista
+            parametros.append(params)
 
             return parametros
-        encontra_parametro_funcao(n, parametros)  # percorre os filhos do no
+        encontra_parametro_funcao(n, parametros)
 
     return parametros
 
 
-def encontra_parametros(no_parametro, parametros):  # encontra os parametros da funcao
-    no_parametro = no_parametro
-    parametros = parametros
-    parametro = {}
+def encontra_parametros(no_parametro, parametros):
+    params = {}
     tipo = ''
     nome = ''
 
-    for no in no_parametro.children:  # percorre os filhos do no parametro
-        if (no.label == 'expressao'):
+    for no in no_parametro.children:
+        if (no.label == 'expressao'):  # se o no for uma expressao
             # retorna o tipo e o nome do parametro
-            tipo, nome = encontra_indice_retorno(no)
-            parametro[nome] = tipo  # adiciona o parametro no dicionario
-            # adiciona o dicionario na lista de parametros
-            parametros.append(parametro)
+            tipo, nome = processa_idx_ret(no)
+            params[nome] = tipo
+            parametros.append(params)
 
             return parametros
 
-        # percorre os filhos do no parametro
         encontra_parametros(no, parametros)
     return parametros
-
-
-def encontra_indice_retorno(expressao):
-    for filhos in expressao.children:
-        if filhos.label == 'numero':  # verifica se o filho é um numero
-            indice = filhos.children[0].children[0].label
-            tipo_retorno = filhos.children[0].label  # retorna o tipo do numero
-
-            # converte o tipo do numero
-            tipo_retorno = conv_tipo.get(tipo_retorno)
-
-            return tipo_retorno, indice
-
-        elif filhos.label == 'ID':
-            indice = filhos.children[0].label  # retorna o nome do ID
-            tipo_retorno = 'parametro'  # retorna o tipo do ID
-
-            return tipo_retorno, indice
-
-        tipo_retorno, indice = encontra_indice_retorno(
-            filhos)  # verifica se o filho tem filhos
-
-    return tipo_retorno, indice
-
-
-def processa_indice(filho):
-    if filho.children[0].label == 'indice':
-        # retorna a dimensao e o indice
-        return 2, *encontra_indice_retorno(filho.children[0].children[1]), *encontra_indice_retorno(filho.children[2])
-    else:
-        # retorna a dimensao e o indice
-        return 1, *encontra_indice_retorno(filho.children[1]), 0
-
-
-def verifica_dimensoes(tree, dimensao, indice_1, indice_2):
-
-    for filho in tree.children:  # percorre os filhos da arvore
-        if filho.label == 'indice':  # verifica se o filho é um indice
-            # processa o indice
-            dimensao, indice_1, *indice_2 = processa_indice(filho)
-            return dimensao, indice_1, indice_2
-
-        dimensao, indice_1, indice_2 = verifica_dimensoes(
-            filho, dimensao, indice_1, indice_2)  # verifica se o filho tem filhos
-
-    return dimensao, indice_1, indice_2
-
-
-def processa_retorna(filho, tipo, func_name, parametros):
-    valor_tipo_ret = encontra_valores_retorno(
-        filho, 'n/a')  # retorna o tipo e o valor do retorno
-    linha_retorno = ''
-    if len(filho.label.split(':')) > 1:
-        linha_retorno = filho.label.split(':')[1]  # retorna a linha do retorno
-    tipo_retorno = 'vazio'  # retorna o tipo do retorno
-    return tipo, func_name, parametros, valor_tipo_ret, tipo_retorno, linha_retorno
-
-
-def encontra_dados_funcao(declaracao_funcao, tipo, func_name, parametros, valor_tipo_ret, tipo_retorno, linha_retorno):
-
-    for filho in declaracao_funcao.children:  # percorre os filhos da declaracao de funcao
-        if filho.label == 'tipo':  # se for tipo
-            tipo = processa_tipo(filho)
-        elif filho.label == 'lista_parametros':  # se for lista de parametros
-            parametros = processa_lista_parametros(filho)
-        elif filho.label == 'cabecalho':  # se for cabecalho
-            func_name, _ = processa_cabecalho(filho, func_name)
-        elif 'retorna' in filho.label:  # se for retorna
-            return processa_retorna(filho, tipo, func_name, parametros)
-        tipo, func_name, parametros, valor_tipo_ret, tipo_retorno, linha_retorno = encontra_dados_funcao(
-            filho, tipo, func_name, parametros, valor_tipo_ret, tipo_retorno, linha_retorno
-        )
-
-    return tipo, func_name, parametros, valor_tipo_ret, tipo_retorno, linha_retorno
-
-
-def insere_tabela(tab_sym, args):
-    tab_sym.loc[len(tab_sym)] = args  # insere na tabela de simbolos
-
-
-def processa_declaracao_variaveis(filho, tab_sym, dim):
-    dim[0], dim[1], dim[2] = verifica_dimensoes(filho, 0, 0, 0)
-
-    global linha_declaracao
-    linha_declaracao = filho.label.split(':')
-    linha_declaracao = linha_declaracao[0] if len(
-        linha_declaracao) == 1 else linha_declaracao[1]  # retorna linha
-
-    insere_tabela(tab_sym,
-                  [
-                      'ID',
-                      str(filho.children[2].children[0]
-                          .children[0].children[0].label),
-                      str(filho.children[0].children[0].children[0].label),
-                      *dim,
-                      escopo,
-                      '0',
-                      linha_declaracao,
-                      '0',
-                      'n/a',
-                      'n/a'
-                  ])  # insere na tabela de simbolos
-
-    return tab_sym
 
 
 def processa_declaracao_funcao(filho, tab_sym):
@@ -280,20 +164,20 @@ def processa_declaracao_funcao(filho, tab_sym):
         linha_declaracao = filho.label.split(':')[1]  # retorna linha
 
     tipo, func_name, _, retorno, tipo_retorno, linha_retorno = encontra_dados_funcao(
-        filho, '', '', '', '', '', '')  # retorna tipo, nome, parametros, retorno, tipo_retorno, linha_retorno
+        filho, '', '', '', '', '', '')  # retorna tipo, idx, parametros, retorno, tipo_retorno, linha_retorno
 
     # se tipo for vazio, retorna vazio, senão retorna tipo
     tipo = tipo if tipo != '' else 'vazio'
 
     insere_tabela(tab_sym, ['ID', func_name, tipo, 0, 0,
-                  0, escopo, '0', linha_declaracao, '1', parametros, 'n/a'])  # insere na tabela de simbolos
+                  0, escopo, '0', linha_declaracao, '1', parametros, []])  # insere na tabela de simbolos
 
     for p in parametros:
         for nome_param, tipo_param in p.items():  # para cada parametro, insere na tabela de simbolos
             insere_tabela(tab_sym, [
-                          'ID', nome_param, tipo_param, 0, 0, 0, escopo, '1', linha_declaracao, '0', 'n/a', 'n/a'])  # insere na tabela de simbolos
+                          'ID', nome_param, tipo_param, 0, 0, 0, escopo, '1', linha_declaracao, '0', [], []])  # insere na tabela de simbolos
 
-    if retorno and retorno != 'n/a':  # se houver retorno, insere na tabela de simbolos
+    if retorno and retorno != []:  # se houver retorno, insere na tabela de simbolos
         tipo_ret_dict = []  # lista de retorno
         for ret in retorno:  # para cada retorno, insere na tabela de simbolos
             for nome_retorno, tipo_retorno in ret.items():  # para cada retorno, insere na tabela de simbolos
@@ -302,7 +186,7 @@ def processa_declaracao_funcao(filho, tab_sym):
                 tipo_variaveis_retorno = tipo_retorno[0] if len(
                     tipo_retorno) > 0 else 'vazio'  # se não tiver tipo, retorna vazio
 
-                # cria um dicionario com o nome e o tipo do retorno
+                # cria um dicionario com o idx e o tipo do retorno
                 tipo_ret = {nome_retorno: tipo_variaveis_retorno}
                 # adiciona na lista de retorno
                 tipo_ret_dict.append(tipo_ret)
@@ -314,7 +198,7 @@ def processa_declaracao_funcao(filho, tab_sym):
         tipo = 'flutuante' if 'flutuante' in tipos else 'inteiro'
 
         insere_tabela(tab_sym, ['ID', 'retorna', tipo, 0, 0, 0, escopo,
-                                '0', linha_retorno, '1', 'n/a', tipo_ret_dict])  # insere na tabela de simbolos
+                                '0', linha_retorno, '1', [], tipo_ret_dict])  # insere na tabela de simbolos
 
 
 def retorna_funcao(tab_sym):
@@ -335,7 +219,7 @@ def retorna_funcao(tab_sym):
         global variavel_nao_declarada
 
         for ret in retorno:  # para cada retorno
-            for nome_retorno, tipo_retorno in ret.items():  # para cada nome e tipo do retorno
+            for nome_retorno, tipo_retorno in ret.items():  # para cada idx e tipo do retorno
                 tipo_retorno = tab_sym.loc[(tab_sym['lex'] == nome_retorno) & (
                     tab_sym['escopo'] == escopo)]  # pega o tipo do retorno
 
@@ -374,7 +258,7 @@ def chamada_funcao_aux(tab_sym, filho):
     parametros = []
     iniciacao = ''
     linha_declaracao = ''
-    # encontra o nome da funcao
+    # encontra o idx da funcao
     func_name = filho.children[0].children[0].label
     # encontra os parametros da chamada da funcao
     parametros = encontra_parametros(filho, parametros)
@@ -392,11 +276,11 @@ def chamada_funcao_aux(tab_sym, filho):
 
     if len(parametros) >= 1:  # se a funcao tiver parametros
         for param in parametros:  # para cada parametro
-            for nome_param, tipo_param in param.items():  # para cada nome e tipo do parametro
+            for nome_param, tipo_param in param.items():  # para cada idx e tipo do parametro
                 parametro_dic = {}
                 parametro_inicializado = tab_sym.loc[(
                     tab_sym['lex'] == nome_param) & (tab_sym['iniciacao'] == '1')]  # encontra o parametro na tabela de simbolos
-                # cria um dicionario com o nome e tipo do parametro
+                # cria um dicionario com o idx e tipo do parametro
                 parametro_dic[nome_param] = tipo_param
                 # adiciona o dicionario na lista de parametros
                 parametro_list.append(parametro_dic)
@@ -405,11 +289,11 @@ def chamada_funcao_aux(tab_sym, filho):
                 iniciacao = '1' if len(parametro_inicializado) > 0 else '0'
 
     insere_tabela(tab_sym, ['ID', filho.children[0].children[0].label, tipo_funcao, 0, 0, 0,
-                            escopo, iniciacao, linha_declaracao, 'chamada_funcao', parametro_list, 'n/a'])  # insere na tabela de simbolos
+                            escopo, iniciacao, linha_declaracao, 'chamada_funcao', parametro_list, []])  # insere na tabela de simbolos
 
 
 def atribuicao_funcao_aux(tab_sym, filho):
-    tipo_valor = atribuicao_expressao(filho.children[2], 'n/a')  # expressao
+    tipo_valor = atribuicao_expressao(filho.children[2], [])  # expressao
     # ID
     variavel_atribuicao_nome = filho.children[0].children[0].children[0].label
 
@@ -483,76 +367,360 @@ def atribuicao_funcao_aux(tab_sym, filho):
                     filho, 0, 0, 0)  # verifica as dimensoes
 
             insere_tabela(tab_sym, ['ID', variavel_atribuicao_nome, var_tipo, dimensoes,
-                                    dims[0], dims[1], escopo, '1', linha_declaracao, '0', 'n/a', valss])  # insere na tabela de simbolos
+                                    dims[0], dims[1], escopo, '1', linha_declaracao, '0', [], valss])  # insere na tabela de simbolos
 
 
-def tab_sym_aux(tree, tab_sym):  # monta a tabela de simbolos
+def tab_sym_aux(tree, tab_sym):
+    dims = [0, '', '']
 
-    dim = [0, '', '']
+    for filho in tree.children:
+        if ('declaracao_variaveis' in filho.label):
 
-    for filho in tree.children:  # percorre os filhos da arvore
+            dims[0], dims[1], dims[2] = verifica_dimensoes(
+                filho, 0, 0, 0)
 
-        if ('retorna' in filho.label):  # verifica se é um retorno
-            retorna_funcao(tab_sym)  # chama a função de retorno
-        elif ('declaracao_variaveis' in filho.label):  # verifica se é uma declaração de variaveis
-            # chama a função de declaração de variaveis
-            return processa_declaracao_variaveis(filho, tab_sym, dim)
-        elif ('declaracao_funcao' in filho.label):  # verifica se é uma declaração de função
-            # chama a função de declaração de função
+            linha_declaracao = filho.label.split(':')
+            insere_tabela(tab_sym, ['ID', str(filho.children[2].children[0].children[0].children[0].label), str(
+                filho.children[0].children[0].children[0].label), dims[0], dims[1], dims[2], escopo, '0', linha_declaracao[1], '0', [], []])
+            return tab_sym
+
+        elif ('declaracao_funcao' in filho.label):
             processa_declaracao_funcao(filho, tab_sym)
 
-        elif ('chamada_funcao' in filho.label):  # verifica se é uma chamada de função
+        elif ('retorna' in filho.label):
+            retorna_funcao(tab_sym)
+
+        elif ('chamada_funcao' in filho.label):
             chamada_funcao_aux(tab_sym, filho)
-        elif ('atribuicao' in filho.label):  # verifica se é uma atribuição
+        elif ('atribuicao' in filho.label):
             atribuicao_funcao_aux(tab_sym, filho)
 
-        tab_sym_aux(filho, tab_sym)  # chama a função recursivamente
+        tab_sym_aux(filho, tab_sym)
 
     return tab_sym
 
 
-def retorna_tipo_var(tipo_var_inicializacao, tipo_var, tipo_variavel_novo):
-    if tipo_var_inicializacao == 'flutuante':  # verifica se variavel é flutuante
-        if tipo_var == 'flutuante':
-            status = True
-            tipo_variavel_novo = 'flutuante'
-        else:
-            status = False
-            tipo_variavel_novo = 'inteiro'
-    else:  # verifica se variavel é inteira
-        if tipo_variavel_novo == 'inteiro':
-            status = True
-            tipo_variavel_novo = 'inteiro'
-        else:
-            status = False
-            tipo_variavel_novo = 'flutuante'
+def verifica_tipo_atribuicao(variavel_atual, tipo_variavel, escopo_variavel, inicializacao_variaveis, variaveis, funcoes, tab_sym):
+    status = True
+    tipo_atribuicao = ''
+    nome_inicializacao = ''
+    tipo_variavel_inicializacao_retorno = ''
+    tipo_variavel_novo = ''
 
-    return status, tipo_variavel_novo  # retorna o status e o tipo da variavel
+    nome_variavel = variavel_atual['lex']
+    for ini_variaveis in inicializacao_variaveis:
+        for ini_var in ini_variaveis:
+            for nome_variavel_inicializacao, tipo_variavel_inicializacao in ini_var.items():
+
+                status = True
+                nome_inicializacao = nome_variavel_inicializacao
+                declaracao_variavel = tab_sym.loc[(tab_sym['lex'] == nome_variavel) & (
+                    tab_sym['escopo'] == escopo_variavel) & (tab_sym['iniciacao'] == '0')]
+
+                if len(declaracao_variavel) == 0:
+                    declaracao_variavel_global = tab_sym.loc[(tab_sym['lex'] == nome_variavel) & (
+                        tab_sym['escopo'] == 'global') & (tab_sym['iniciacao'] == '0')]
+
+                    if len(declaracao_variavel_global) > 0:
+                        tipo_variavel_novo = declaracao_variavel_global['tipo'].values[0]
+                else:
+                    tipo_variavel_novo = declaracao_variavel['tipo'].values[0]
+
+                if nome_variavel_inicializacao in funcoes:
+                    tipo_atribuicao = tab_sym.loc[tab_sym['lex']
+                                                  == nome_variavel_inicializacao]
+                    tipo_atribuicao = tipo_atribuicao['tipo'].values
+                    tipo_atribuicao = tipo_atribuicao[0]
+
+                    if tipo_variavel_novo == tipo_atribuicao:
+                        status = True
+                    else:
+                        status = False
+
+                    if status == False:
+
+                        print(error_handler.newError('WAR-ATR-TIP-INCOMP', value=[nome_variavel,
+                                                                                  tipo_variavel_novo, nome_variavel_inicializacao, tipo_atribuicao]))
+
+                    return status, tipo_variavel_inicializacao, tipo_variavel_novo, nome_inicializacao
+
+                elif nome_variavel_inicializacao in variaveis['lex'].values:
+                    tipo_atribuicao = tab_sym.loc[(tab_sym['lex'] == nome_variavel_inicializacao) & (
+                        tab_sym['escopo'] == escopo_variavel) & (tab_sym['iniciacao'] == '0')]
+
+                    if len(tipo_atribuicao) == 0:
+                        tipo_atribuicao = tab_sym.loc[(tab_sym['lex'] == nome_variavel_inicializacao) & (
+                            tab_sym['escopo'] == 'global') & (tab_sym['iniciacao'] == '0')]
+
+                    tipo_atribuicao = tipo_atribuicao['tipo'].values
+                    if len(tipo_atribuicao) > 0:
+                        tipo_atribuicao = tipo_atribuicao[0]
+
+                    if len(tipo_variavel_novo) > 0 and len(tipo_atribuicao) > 0:
+                        if tipo_variavel_novo == tipo_atribuicao:
+                            status = True
+                        else:
+                            status = False
+
+                    if status == False:
+                        print(error_handler.newError('WAR-ATR-TIP-INCOMP', value=[nome_variavel,
+                                                                                  tipo_variavel_novo, nome_variavel_inicializacao, tipo_atribuicao]))
+
+                elif tipo_variavel_inicializacao == 'inteiro' or tipo_variavel_inicializacao == 'flutuante':
+
+                    declaracao_variavel_valor = tab_sym.loc[(tab_sym['lex'] == nome_variavel) & (
+                        tab_sym['escopo'] == escopo_variavel) & (tab_sym['iniciacao'] == '0')]
+
+                    if len(declaracao_variavel_valor) == 0:
+                        declaracao_variavel_global_valor = tab_sym.loc[(tab_sym['lex'] == nome_variavel) & (
+                            tab_sym['escopo'] == 'global') & (tab_sym['iniciacao'] == '0')]
+
+                        if len(declaracao_variavel_global_valor) > 0:
+                            tipo_variavel_novo = declaracao_variavel_global_valor['tipo'].values[0]
+                    else:
+                        tipo_variavel_novo = declaracao_variavel['tipo'].values[0]
+
+                    if '.' in str(nome_variavel_inicializacao):
+                        tipo_variavel = 'flutuante'
+
+                    if tipo_variavel_inicializacao == 'flutuante':
+                        if tipo_variavel == 'flutuante':
+                            status = True
+                            tipo_variavel_novo = 'flutuante'
+                        else:
+                            status = False
+                            tipo_variavel_novo = 'inteiro'
+
+                    else:
+                        if tipo_variavel_novo == 'inteiro':
+                            status = True
+                            tipo_variavel_novo = 'inteiro'
+                        else:
+                            status = False
+                            tipo_variavel_novo = 'flutuante'
+
+                    if status == False:
+                        print(error_handler.newError('WAR-ATR-TIP-INCOMP', value=[nome_variavel,
+                                                                                  tipo_variavel_novo, nome_variavel_inicializacao, tipo_variavel_inicializacao]))
+                tipo_variavel_inicializacao_retorno = tipo_variavel_inicializacao
+
+    return status, tipo_variavel_inicializacao_retorno, tipo_variavel_novo, nome_inicializacao
 
 
-def verifica_regras_semanticas(tab_sym):  # função principal
-
-    # variaveis globais
+def processa_semantica(tab_sym):
     variaveis = tab_sym.loc[tab_sym['funcao'] == '0']
+
     funcoes = tab_sym.loc[tab_sym['funcao']
-                          != '0', 'lex'].unique()  # funcoes declaradas
+                          != '0', 'lex'].unique()
 
-    for var in variaveis['lex'].unique():  # verifica se variavel foi declarada
-        checa_declaracao_variavel(
-            variaveis, var, tab_sym, error_handler)
-    for _, var in variaveis.iterrows():  # verifica se variavel foi inicializada
-        checa_inicializacao_variavel(tab_sym, var, error_handler)
+    varss = variaveis
+    i = 0
+    for var in variaveis['lex'].unique():
 
-    # verifica se funcao tem retorno
-    checa_retorno_funcao(tab_sym, error_handler)
+        linhas = tab_sym[tab_sym['lex'] == var].index.tolist()
+        linha = tab_sym[tab_sym['lex'] == var]
 
-    for _, func in tab_sym.iterrows():  # verifica se funcao foi chamada
-        if func['lex'] in funcoes:
-            parametros = tab_sym.loc[(tab_sym['funcao'] == '0') &
-                                     (tab_sym['escopo'] == func['lex'])]  # parametros da funcao
-            chamada = {'lex': func['lex'], 'parametros': parametros}
-            # verifica se funcao foi chamada
-            checa_chamada_funcao(chamada, tab_sym, error_handler)
+        if len(linhas) > 1:
+            linhas = linha[linha['iniciacao'] == '0'].index.tolist()
+            if len(linhas) > 1:
+                varss.drop(linhas[0])
+
+    for _, row in variaveis.iterrows():
+        lista_declaracao_variavel = tab_sym.loc[(tab_sym['lex'] == row['lex']) & (
+            tab_sym['iniciacao'] == '0') & (tab_sym['escopo'] == row['escopo'])]
+
+        if len(lista_declaracao_variavel) > 1:
+            print(error_handler.newError(
+                'WAR-ALR-DECL', value=[row['lex']]))
+
+    escopo_variaveis_verificacao = varss['escopo'].unique()
+    for e in escopo_variaveis_verificacao:
+        for var in variaveis['lex'].unique():
+            mesmo_escopo = varss[(varss['escopo'] == e) & (
+                varss['lex'] == var)]
+
+            if len(mesmo_escopo) > 1:
+                linha_mesmo_escopo = mesmo_escopo.index.tolist()
+                varss.drop(linha_mesmo_escopo[0])
+
+    for linha in varss.index:
+        inicializacao_variaveis = tab_sym.loc[(tab_sym['lex'] == variaveis['lex'][linha]) & (
+            tab_sym['escopo'] == variaveis['escopo'][linha]) & (tab_sym['iniciacao'] == '1')]
+        inicializacao_variaveis = inicializacao_variaveis['valor'].values
+
+        inicializacao_variaveis_valores = []
+        if len(inicializacao_variaveis) > 0:
+            inicializacao_variaveis_valores = inicializacao_variaveis
+
+        if len(inicializacao_variaveis_valores) > 0:
+            boolen_tipo_igual, tipo_variavel_atribuida, tipo_atribuicao, nome_variavel_inicializacao = verifica_tipo_atribuicao(
+                variaveis.iloc[i], variaveis['tipo'][linha], variaveis['escopo'][linha], inicializacao_variaveis_valores, variaveis, funcoes, tab_sym)
+
+        i += 1
+
+    variaveis_repetidas_valores = variaveis['lex'].unique()
+
+    for var_rep in variaveis_repetidas_valores:
+        variaveis_repetidas = variaveis.loc[variaveis['lex'] == var_rep]
+
+        if len(variaveis_repetidas) > 1:
+            variaveis_repetidas_index = variaveis_repetidas[variaveis_repetidas['iniciacao'] == '0'].index
+            variaveis_repetidas_linhas = variaveis_repetidas[variaveis_repetidas['iniciacao'] == '0']
+            escopos_variaveis = variaveis_repetidas_linhas['escopo'].unique()
+
+            for esc in escopos_variaveis:
+                variaveis_repetidas_escopo_igual_index = variaveis_repetidas_linhas.loc[
+                    variaveis_repetidas_linhas['escopo'] == esc].index
+                variaveis.drop(variaveis_repetidas_escopo_igual_index[0])
+
+        elif len(variaveis_repetidas) == 0:
+            print(error_handler.newError('ERR-VAR-NOT-DECL', value=[var_rep]))
+
+    repetidos_variaveis_atribuicao = variaveis['lex'].unique()
+    for rep in repetidos_variaveis_atribuicao:
+        tabela_variaveis_repetida = variaveis.loc[variaveis['lex'] == rep]
+        tabela_variaveis_repetida_index = variaveis.loc[variaveis['lex'] == rep].index
+
+        if len(tabela_variaveis_repetida_index) > 1:
+            variaveis.drop(tabela_variaveis_repetida_index[0])
+
+    if ('principal' not in funcoes):
+        print(error_handler.newError('ERR-FUNC-NOT-DECL'))
+
+    for index, row in variaveis.iterrows():
+        dimensao_variavel = row['dimensao']
+
+        if int(dimensao_variavel) > 0:
+            if int(dimensao_variavel) == 1:
+                if '.' in str(row['tamanho dimensional 1']):
+                    print(error_handler.newError(
+                        'ERR-IND-ARRAY', value=[row['lex']]))
+
+            elif int(dimensao_variavel) == 2:
+                if '.' in str(row['tamanho dimensional 2']):
+                    print(error_handler.newError(
+                        'ERR-IND-ARRAY', value=[row['lex']]))
+
+        inicializada = False
+
+        df = tab_sym.loc[tab_sym['lex'] == row['lex']]
+
+        if (len(df) > 1):
+            for lin in range(len(df)):
+                if (df.iloc[lin]['iniciacao'] != '0'):
+                    inicializada = True
+        else:
+            if (tab_sym.iloc[0]['iniciacao'] != '0'):
+                inicializada = True
+
+        retorna_parametros = tab_sym.loc[(tab_sym['lex'] == 'retorna') & (
+            tab_sym['escopo'] == row['escopo'])]
+        retorna_parametros = retorna_parametros['valor']
+        retorna_parametros = retorna_parametros.values
+
+        if len(retorna_parametros) > 0:
+            for retornos_variaveis in retorna_parametros:
+                for rt_vs in retornos_variaveis:
+                    for nome_variavel_retorno, tipo_variavel_retorno in rt_vs.items():
+
+                        if (row['lex'] == nome_variavel_retorno):
+                            inicializada = True
+
+        if (inicializada == False):
+            print(error_handler.newError(
+                'WAR-SEM-VAR-DECL-NOT-USED', value=[row['lex']]))
+
+    for func in funcoes:
+        if func == 'principal':
+            tabela_retorno = tab_sym.loc[tab_sym['lex'] == 'retorno']
+
+            if (tabela_retorno.shape[0] == 0):
+                print(error_handler.newError(
+                    'ERR-RET-TIP-INCOMP', value=['inteiro']))
+
+            chamada_funcao_principal = tab_sym.loc[(
+                tab_sym['funcao'] == 'chamada_funcao') & (tab_sym['lex'] == 'principal')]
+
+            if len(chamada_funcao_principal) > 0:
+                verifica_escopo = chamada_funcao_principal['escopo'].values[0]
+
+                if verifica_escopo == 'principal':
+                    print(error_handler.newError(
+                        'WAR-REC-PRIN'))
+                else:
+                    print(error_handler.newError(
+                        'ERR-REC-PRIN'))
+        else:
+            chamada_funcao = tab_sym.loc[(tab_sym['lex'] == func) & (
+                tab_sym['funcao'] == 'chamada_funcao')]
+            declaracao_funcao = tab_sym.loc[(
+                tab_sym['lex'] == func) & (tab_sym['funcao'] == '1')]
+
+            if (func == 'retorna'):
+                escopo_retorno = declaracao_funcao['escopo'].values
+                escopo_retorno = escopo_retorno[0]
+
+                variavel_retornada = declaracao_funcao['valor'].values[0]
+                for var in variavel_retornada:
+                    for n, t in var.items():
+                        variavel_retornada = n
+
+                tipo_retorno_funcao = declaracao_funcao['tipo'].values
+                tipo_retorno_funcao = tipo_retorno_funcao[0]
+
+                if variavel_retornada in tab_sym['lex'].unique():
+                    declaracao_variavel = tab_sym.loc[(tab_sym['lex'] == variavel_retornada) & (
+                        tab_sym['escopo'] == escopo_retorno) & (tab_sym['iniciacao'] == '0')]
+
+                    if len(declaracao_variavel) == 0:
+
+                        declaracao_variavel_global = tab_sym.loc[(tab_sym['lex'] == variavel_retornada) & (
+                            tab_sym['escopo'] == 'global') & (tab_sym['iniciacao'] == '0')]
+
+                        if len(declaracao_variavel_global) == 0:
+                            declaracao_variavel_global = tab_sym.loc[(tab_sym['lex'] == variavel_retornada) & (
+                                tab_sym['escopo'] == escopo_retorno) & (tab_sym['iniciacao'] == '1')]
+
+                        tipo_retorno_funcao = declaracao_variavel_global['tipo'].values[0]
+
+                procura_funcao_escopo = tab_sym.loc[(tab_sym['funcao'] == '1') & (
+                    tab_sym['escopo'] == escopo_retorno) & (tab_sym['lex'] != 'retorna')]
+
+                nome_funcao = procura_funcao_escopo['lex'].values
+                nome_funcao = nome_funcao[0]
+
+                tipo_funcao = procura_funcao_escopo['tipo'].values
+                tipo_funcao = tipo_funcao[0]
+
+                if (tipo_funcao != tipo_retorno_funcao):
+                    print(error_handler.newError('ERR-FUNC-TYPE-RETURN', value=(nome_funcao, tipo_funcao, tipo_retorno_funcao)
+                                                 ))
+
+            if len(chamada_funcao) > 0:
+
+                if len(declaracao_funcao) < 1:
+                    print(error_handler.newError(
+                        'ERR-CHAMA-FUNC', value=[func]))
+                else:
+                    quantidade_parametros_chamada = chamada_funcao['parametros']
+                    quantidade_parametros_chamada = quantidade_parametros_chamada.values
+                    quantidade_parametros_chamada = quantidade_parametros_chamada[0]
+
+                    quantidade_parametros_declaracao_funcao = declaracao_funcao['parametros']
+                    quantidade_parametros_declaracao_funcao = quantidade_parametros_declaracao_funcao.values
+                    quantidade_parametros_declaracao_funcao = quantidade_parametros_declaracao_funcao[
+                        0]
+
+                    if len(quantidade_parametros_chamada) != len(quantidade_parametros_declaracao_funcao):
+                        print(error_handler.newError(
+                            'ERR-PARAM-FUNC-INCOMP-'+'MENOS' if len(quantidade_parametros_chamada) < len(
+                                quantidade_parametros_declaracao_funcao) else 'MAIS', value=[func]))
+
+            else:
+                if len(declaracao_funcao) > 0:
+                    if func != 'retorna':
+                        print(error_handler.newError(
+                            'WAR-NOT-USED-FUNC', value=[func]))
 
 
 if __name__ == "__main__":
@@ -575,7 +743,7 @@ if __name__ == "__main__":
                 root, tab_sym)  # monta a tabela de simbolos
 
             # verifica as regras semanticas
-            verifica_regras_semanticas(tab_sym)
+            processa_semantica(tab_sym)
 
             # salva a tabela de simbolos em um arquivo csv
             tab_sym.to_csv(f'{argv[1]}.csv', index=None, header=True)
@@ -592,7 +760,7 @@ def retorna_arvore_tabela(data):
         tab_sym = tab_sym_aux(
             root, tab_sym)
 
-        verifica_regras_semanticas(tab_sym)
+        processa_semantica(tab_sym)
 
         poda_arvore(root, tokens, nodes)  # poda a arvore
 

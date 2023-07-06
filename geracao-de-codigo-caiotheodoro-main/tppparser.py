@@ -36,6 +36,12 @@ root = None
 #   ...    ...     ...
 
 
+def find_column(token, pos):
+    input = token.lexer.lexdata
+    line_start = input.rfind('\n', 0, token.lexpos(pos)) + 1
+    return (token.lexpos(pos) - line_start) + 1
+
+
 def p_programa(p):
     """programa : lista_declaracoes"""
 
@@ -91,16 +97,32 @@ def p_declaracao(p):
 def p_declaracao_variaveis(p):
     """declaracao_variaveis : tipo DOIS_PONTOS lista_variaveis"""
 
-    pai = MyNode(name='declaracao_variaveis', type='DECLARACAO_VARIAVEIS')
+    line = p.lineno(2)
+    name = 'declaracao_variaveis:' + str(line)
+    pai = MyNode(name=name, type='DECLARACAO_VARIAVEIS')
     p[0] = pai
 
     p[1].parent = pai
 
-    filho = MyNode(name='DOIS_PONTOS', type='DOIS_PONTOS', parent=pai)
+    filho = MyNode(name='dois_pontos', type='DOIS_PONTOS', parent=pai)
     filho_sym = MyNode(name=p[2], type='SIMBOLO', parent=filho)
     p[2] = filho
 
     p[3].parent = pai
+
+
+def p_declaracao_variaveis_error(p):
+    """declaracao_variaveis : tipo DOIS_PONTOS error"""
+
+    column = find_column(p, 2)
+    print("Erro[{},{}]: Erro ao declarar variável".format(p.lineno(2), column))
+
+    error_line = p.lineno(2)
+    father = MyNode(name='ERROR::{}'.format(error_line), type='ERROR')
+    logging.error(
+        "Erro de sintaxe ao realizar parser da regra declaração variável, localizado na linha{}".format(error_line))
+    parser.errok()
+    p[0] = father
 
 # Sub-árvore.
 #   (inicializacao_variaveis)
@@ -108,25 +130,15 @@ def p_declaracao_variaveis(p):
 #         (atribuicao)
 
 
-def p_declaracao_variaveis_error(p):
+# def p_inicializacao_variaveis(p):
+#     """inicializacao_variaveis : atribuicao"""
 
-    column = define_column(p.lexer.lexdata, p.lexpos(2))
-    message = "Erro[%s,%s]: Declaração inválida de variável '%s'" % (
-        p.lineno(2), column, p.value[0])
-
-    # adiciona erro na lista de erros
-    error_handler.newError('ERR-LEX-INV-VAR')
-    print(message)  # imprime erro no console
-
-    # cria nó para a sub-árvore
-    pai = MyNode(name='ERR-LEX-INV-VAR', type='ERROR')
-    logging.error(message)  # registra erro no log
-
-    parser.errok()  # reseta o parser para continuar a execução
-
-    p[0] = pai  # retorna o nó para o parser
-
-
+#     line = p.lineno(2)
+#     name = 'inicializacao_variaveis:' + str(line)
+#     pai = MyNode(name='inicializacao_variaveis',
+#                  type='INICIALIZACAO_VARIAVEIS')
+#     p[0] = pai
+#     p[1].parent = pai
 def p_inicializacao_variaveis(p):
     """inicializacao_variaveis : atribuicao"""
 
@@ -202,23 +214,20 @@ def p_indice_error(p):
                 | indice ABRE_COLCHETE error FECHA_COLCHETE
     """
 
-    if len(p) != 4:
-        column = define_column(p.lexer.lexdata, p.lexpos(2))
+    if len(p) == 4:
+        column = find_column(p, 1)
     else:
-        column = define_column(p.lexer.lexdata, p.lexpos(1))
+        column = find_column(p, 2)
+
+    print("Erro:[{}, {}]: Erro na definição do indice".format(
+        p.lineno(2), column))
 
     error_line = p.lineno(2)
-    message = "Erro[%s,%s]: Expressao ou indice inválido(s)" % (
-        error_line, column)
-
-    print(message)
-    error_handler.newError('ERR-IND-INV')
-
-    pai = MyNode(name='ERR-IND-INV', type='ERROR')
-
-    logging.error(message)
+    father = MyNode(name='ERROR::{}'.format(error_line), type='ERROR')
+    logging.error(
+        "Erro de sintaxe ao realizar parser da regra de indice, localizado na linha{}".format(error_line))
     parser.errok()
-    p[0] = pai
+    p[0] = father
 
 
 # Sub-árvore:
@@ -247,7 +256,18 @@ def p_declaracao_funcao(p):
     """declaracao_funcao : tipo cabecalho 
                         | cabecalho 
     """
-    pai = MyNode(name='declaracao_funcao', type='DECLARACAO_FUNCAO')
+    global cabecalho
+
+    try:
+        line = p.lineno(2)
+
+        if line == 0:
+            line = cabecalho
+    except:
+        line = cabecalho
+
+    name = 'declaracao_funcao:' + str(line)
+    pai = MyNode(name=name, type='DECLARACAO_FUNCAO')
     p[0] = pai
     p[1].parent = pai
 
@@ -257,6 +277,9 @@ def p_declaracao_funcao(p):
 
 def p_cabecalho(p):
     """cabecalho : ID ABRE_PARENTESE lista_parametros FECHA_PARENTESE corpo FIM"""
+
+    global cabecalho
+    cabecalho = p.lineno(2)
 
     pai = MyNode(name='cabecalho', type='CABECALHO')
     p[0] = pai
@@ -288,16 +311,15 @@ def p_cabecalho_error(p):
                 | error ABRE_PARENTESE lista_parametros FECHA_PARENTESE corpo FIM 
     """
 
-    error_line = p.lineno(2)
-    # column = define_column(p.lexer.lexdata, p.lexpos(2))
-    message = "Erro[%s]: Cabecalho de funcao inválido." % (error_line)
+    print("Erro[{}]: Erro na definição do cabeçalho. Lista de Parametros, corpo ou id".format(
+        p.lineno(2)))
 
-    print(message)
-    logging.error(message)
-    error_handler.newError('ERR-CAB-INV')
-    pai = MyNode(name='ERR-CAB-INV', type='ERROR')
+    error_line = p.lineno(2)
+    father = MyNode(name='ERROR::{}'.format(error_line), type='ERROR')
+    logging.error(
+        "Erro de sintaxe ao declarar cabeçalho, localizado na linha' {}".format(error_line))
     parser.errok()
-    p[0] = pai
+    p[0] = father
 
 
 def p_lista_parametros(p):
@@ -327,7 +349,7 @@ def p_parametro(p):
     p[1].parent = pai
 
     if p[2] == ':':
-        filho2 = MyNode(name='DOIS_PONTOS', type='DOIS_PONTOS', parent=pai)
+        filho2 = MyNode(name='dois_pontos', type='DOIS_PONTOS', parent=pai)
         filho_sym2 = MyNode(name=':', type='SIMBOLO', parent=filho2)
         p[2] = filho2
 
@@ -351,17 +373,25 @@ def p_parametro_error(p):
                 | parametro ABRE_COLCHETE error
     """
 
-    column = auxiliar_p_parametro_error(p)
-    error_line = p.lineno(2)
-    message = "Erro[%s,%s]: Parametro ((%s)) inválido." % (
-        error_line, column, get_parameter_error(p.value[0]))  # verificar p.value[0]
+    if len(p) == 3:
+        column = find_column(p, 0)
+    elif len(p) == 4:
+        column = find_column(p, 1)
+    else:
+        if p[2] == '(':
+            column = find_column(p, 1)
+        else:
+            column = find_column(p, 2)
 
-    print(message)
-    logging.error(message)
-    error_handler.newError('ERR-SYN-INV-PAR')
+    print("Erro[{}, {}]: Erro na definição dos parâmetros. Tipo, dois pontos, abre colchete ou fecha colchete.".format(
+        p.lineno(2), column))
+
+    error_line = p.lineno(2)
+    father = MyNode(name='ERROR::{}'.format(error_line), type='ERROR')
+    logging.error(
+        "Erro de sintaxe ao declarar parametro, localizado na linha' {}".format(error_line))
     parser.errok()
-    pai = MyNode(name='ERR-SYN-INV-PAR', type='ERROR')
-    p[0] = pai
+    p[0] = father
 
 
 def p_corpo(p):
@@ -441,22 +471,37 @@ def p_se_error(p):
         | error expressao ENTAO corpo SENAO corpo FIM
         | SE expressao error corpo SENAO corpo FIM
         | SE expressao ENTAO corpo error corpo FIM
-        | SE expressao ENTAO corpo SENAO corpo
     """
+    column = 0
+    condition = ''
+    if (len(p) == 6):
+        if p[1] == 'se':
+            column = find_column(p, 2)
+            condition = 'então'
+        else:
+            condition = 'se'
+            column = find_column(p, 0)
+    else:
+        if p[1] != 'se':
+            condition = 'se'
+            column = find_column(p, 0)
+        else:
+            if (p[3] == 'então'):
+                condition = 'senão'
+                column = find_column(p, 2)
+            else:
+                condition = 'então'
+                column = find_column(p, 4)
 
-    condicao, column = get_se_error(p)
-    error_line = p.lineno(1)
+    print("Erro[{},{}]:Erro na definição da estrutura condicional. Condição '{}' inexistente.".format(
+        p.lineno(2), column, condition))
 
-    message = "Erro[%s,%s]: Estrutura condicional ((%s)) inválida. ((%s)) faltante" % (
-        error_line, column, p[1], condicao)
-
-    print(message)
-    logging.error(message)
-    error_handler.newError('ERR-INV-COND')
-
-    pai = MyNode(name='ERR-INV-COND', type='ERROR')
+    error_line = p.lineno(2)
+    father = MyNode(name='ERROR::{}'.format(error_line), type='ERROR')
+    logging.error(
+        "Erro de sintaxe ao declarar a estrutura condicional, localizado na linha' {}".format(error_line))
     parser.errok()
-    p[0] = pai
+    p[0] = father
 
 
 def p_repita(p):
@@ -483,25 +528,25 @@ def p_repita_error(p):
             | REPITA corpo error expressao
     """
 
-    column = define_column(p.lexer.lexdata, p.lexpos(0))
+    column = find_column(p, 0)
+    print("Erro[{}]: Erro na definição da estrutura de repetição.".format(
+        p.lineno(2), column))
+
     error_line = p.lineno(2)
-
-    message = "Erro[%s,%s]: Estrutura de repetição inválida." % (
-        error_line, column)
-
-    print(message)
-    logging.error(message)
-    error_handler.newError('ERR-INV-REP')
-
-    pai = MyNode(name='ERR-INV-REP', type='ERROR')
+    father = MyNode(name='ERROR::{}'.format(error_line), type='ERROR')
+    logging.error(
+        "Erro de sintaxe na estrutura de repetição, localizado na linha' {}".format(error_line))
     parser.errok()
-    p[0] = pai
+    p[0] = father
 
 
 def p_atribuicao(p):
     """atribuicao : var ATRIBUICAO expressao"""
 
-    pai = MyNode(name='atribuicao', type='ATRIBUICAO')
+    line = p.lineno(2)
+    name = 'atribuicao:' + str(line)
+
+    pai = MyNode(name=name, type='ATRIBUICAO')
     p[0] = pai
 
     p[1].parent = pai
@@ -538,23 +583,22 @@ def p_leia_error(p):
     """leia : LEIA ABRE_PARENTESE error FECHA_PARENTESE
     """
 
-    column = define_column(p.lexer.lexdata, p.lexpos(2))
+    column = find_column(p, 2)
+    print("Erro[{}, {}]: Erro na definição do método de leitura.".format(
+        p.lineno(2), column))
+
     error_line = p.lineno(2)
-
-    message = "Erro[%s,%s]: Estrutura de leitura inválida." % (
-        error_line, column)
-
-    print(message)
-    logging.error(message)
-    error_handler.newError('ERR-INV-READ')
-
-    pai = MyNode(name='ERR-INV-READ', type='ERROR')
+    father = MyNode(name='ERROR::{}'.format(error_line), type='ERROR')
+    logging.error(
+        "Erro de sintaxe ao declarar método de leitura, localizado na linha' {}".format(error_line))
     parser.errok()
-    p[0] = pai
+    p[0] = father
 
 
 def p_escreva(p):
-    """escreva : ESCREVA ABRE_PARENTESE expressao FECHA_PARENTESE"""
+    """escreva : ESCREVA ABRE_PARENTESE expressao FECHA_PARENTESE
+                | ESCREVA ABRE_PARENTESE var FECHA_PARENTESE
+    """
 
     pai = MyNode(name='escreva', type='ESCREVA')
     p[0] = pai
@@ -577,7 +621,9 @@ def p_escreva(p):
 def p_retorna(p):
     """retorna : RETORNA ABRE_PARENTESE expressao FECHA_PARENTESE"""
 
-    pai = MyNode(name='retorna', type='RETORNA')
+    line = p.lineno(2)
+    name = 'retorna:' + str(line)
+    pai = MyNode(name=name, type='RETORNA')
     p[0] = pai
 
     filho1 = MyNode(name='RETORNA', type='RETORNA', parent=pai)
@@ -685,9 +731,10 @@ def p_operador_relacional(p):
     """operador_relacional : MENOR
                             | MAIOR
                             | IGUAL
-                            | DIFERENTE 
+                            | DIFERENCA 
                             | MENOR_IGUAL
                             | MAIOR_IGUAL
+
     """
     pai = MyNode(name='operador_relacional', type='OPERADOR_RELACIONAL')
     p[0] = pai
@@ -702,7 +749,7 @@ def p_operador_relacional(p):
         filho = MyNode(name='IGUAL', type='IGUAL', parent=pai)
         filho_sym = MyNode(name=p[1], type='SIMBOLO', parent=filho)
     elif p[1] == "<>":
-        filho = MyNode(name='DIFERENTE', type='DIFERENTE', parent=pai)
+        filho = MyNode(name='DIFERENCA', type='DIFERENCA', parent=pai)
         filho_sym = MyNode(name=p[1], type='SIMBOLO', parent=filho)
     elif p[1] == "<=":
         filho = MyNode(name='MENOR_IGUAL', type='MENOR_IGUAL', parent=pai)
@@ -711,7 +758,7 @@ def p_operador_relacional(p):
         filho = MyNode(name='MAIOR_IGUAL', type='MAIOR_IGUAL', parent=pai)
         filho_sym = MyNode(name=p[1], type='SIMBOLO', parent=filho)
     else:
-        print('Erro operador relacional')
+        print('Erro ao utilizar operador relacional')
 
     p[1] = filho
 
@@ -733,42 +780,42 @@ def p_operador_soma(p):
 
 
 def p_operador_logico(p):
-    """operador_logico : E
-                    | OU
+    """operador_logico : E_LOGICO
+                    | OU_LOGICO
     """
     if p[1] == "&&":
-        filho = MyNode(name='E', type='E')
+        filho = MyNode(name='E_LOGICO', type='E_LOGICO')
         filho_lexema = MyNode(name=p[1], type='SIMBOLO', parent=filho)
         p[0] = MyNode(name='operador_logico',
                       type='OPERADOR_LOGICO', children=[filho])
     else:
-        filho = MyNode(name='OU', type='OU')
+        filho = MyNode(name='OU_LOGICO', type='OU_LOGICO')
         filho_lexema = MyNode(name=p[1], type='SIMBOLO', parent=filho)
         p[0] = MyNode(name='operador_logico',
                       type='OPERADOR_SOMA', children=[filho])
 
 
 def p_operador_negacao(p):
-    """operador_negacao : NAO"""
+    """operador_negacao : NEGACAO"""
 
     if p[1] == "!":
-        filho = MyNode(name='NAO', type='NAO')
+        filho = MyNode(name='NEGACAO', type='NEGACAO')
         negacao_lexema = MyNode(name=p[1], type='SIMBOLO', parent=filho)
         p[0] = MyNode(name='operador_negacao',
                       type='OPERADOR_NEGACAO', children=[filho])
 
 
 def p_operador_multiplicacao(p):
-    """operador_multiplicacao : VEZES
-                            | DIVIDE
+    """operador_multiplicacao : MULTIPLICACAO
+                            | DIVISAO
         """
     if p[1] == "*":
-        filho = MyNode(name='VEZES', type='VEZES')
+        filho = MyNode(name='MULTIPLICACAO', type='MULTIPLICACAO')
         vezes_lexema = MyNode(name=p[1], type='SIMBOLO', parent=filho)
         p[0] = MyNode(name='operador_multiplicacao',
                       type='OPERADOR_MULTIPLICACAO', children=[filho])
     else:
-        divide = MyNode(name='DIVIDE', type='DIVIDE')
+        divide = MyNode(name='DIVISAO', type='DIVISAO')
         divide_lexema = MyNode(name=p[1], type='SIMBOLO', parent=divide)
         p[0] = MyNode(name='operador_multiplicacao',
                       type='OPERADOR_MULTIPLICACAO', children=[divide])
@@ -802,19 +849,16 @@ def p_fator_error(p):
     """fator : ABRE_PARENTESE error FECHA_PARENTESE
         """
 
-    column = define_column(p.lexer.lexdata, p.lexpos(1))
+    column = find_column(p, 1)
+    print("Erro[{}, {}]: Erro de sintaxe na definição do expressão.".format(
+        p.lineno(2), column))
+
     error_line = p.lineno(2)
-
-    message = "Erro[%s, %s]: Expressão de fator inválida" % (
-        error_line, column)
-
-    print(message)
-    logging.error(message)
-    error_handler.newError('ERR-INV-FATOR')
-
-    pai = MyNode(name='ERR-INV-FATOR', type='ERROR')
+    father = MyNode(name='ERROR::{}'.format(error_line), type='ERROR')
+    logging.error(
+        "Erro de sintaxe na declaração do fator, localizado na linha' {}".format(error_line))
     parser.errok()
-    p[0] = pai
+    p[0] = father
 
 
 def p_numero(p):
@@ -845,7 +889,9 @@ def p_numero(p):
 def p_chamada_funcao(p):
     """chamada_funcao : ID ABRE_PARENTESE lista_argumentos FECHA_PARENTESE"""
 
-    pai = MyNode(name='chamada_funcao', type='CHAMADA_FUNCAO')
+    line = p.lineno(2)
+    name = 'chamada_funcao:' + str(line)
+    pai = MyNode(name=name, type='CHAMADA_FUNCAO')
     p[0] = pai
     if len(p) > 2:
         filho1 = MyNode(name='ID', type='ID', parent=pai)
@@ -886,25 +932,6 @@ def p_lista_argumentos(p):
     else:
         p[1].parent = pai
 
-# def p_lista_argumentos_error(p):
-#     """lista_argumentos : error VIRGULA expressao
-#                     | expressao
-#                     | vazio
-#         """
-
-#     column = define_column(p.lexer.lexdata, p.lexpos(1))
-#     error_line = p.lineno(2)
-
-#     message = "Erro[%s, %s]: Expressão de lista de argumentos inválida" % (error_line, column)
-
-#     print(message)
-#     logging.error(message)
-#     error_handler.newError('ERR-SYN-LISTA-ARGUMENTOS')
-
-#     pai = MyNode(name=message, type='ERROR')
-#     parser.errok()
-#     p[0] = pai
-
 
 def p_vazio(p):
     """vazio : """
@@ -917,12 +944,11 @@ def p_error(p):
 
     if p:
         token = p
-        column = define_column(p.lexer.lexdata, p.lexpos)
-        print("Erro:[{line},{column}]: Erro próximo ao token '{token}'".format(
-            line=token.lineno, column=column, token=token.value))
+        print("Erro[{line},{column}]: Erro próximo ao token '{token}'".format(
+            line=token.lineno, column=token.lineno, token=token.value))
+
 
 # Programa principal.
-
 
 # Build the parser.
 parser = yacc.yacc(method="LALR", optimize=True, start='programa', debug=True,
