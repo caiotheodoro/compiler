@@ -1,3 +1,3 @@
-token,lex,tipo,dimensao,tamanho dimensional 1,tamnho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
-ID,principal,flutuante,0,0,0,global,0,,1,[],n/a
-ID,b,flutuante,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
+token,lex,tipo,dimensao,tamanho dimensional 1,tamanho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
+ID,principal,inteiro,0,0,0,principal,0,4,1,[],[]
+ID,b,flutuante,0,0,0,principal,0,5,0,[],[]

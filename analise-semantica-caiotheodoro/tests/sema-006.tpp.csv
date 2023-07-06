@@ -1,14 +1,11 @@
 token,lex,tipo,dimensao,tamanho dimensional 1,tamanho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
-ID,func,inteiro,0,0,0,func,0,6,S,"[{'x': 'inteiro'}, {'y': 'inteiro'}]",[]
-ID,x,inteiro,0,0,0,func,S,6,0,[],[]
-ID,y,inteiro,0,0,0,func,S,6,0,[],[]
-ID,retorna,inteiro,0,0,0,func,0,7,S,[],"[{'x': 'inteiro'}, {'y': 'inteiro'}]"
-ID,principal,inteiro,0,0,0,principal,0,10,S,[],[]
+ID,func,inteiro,0,0,0,func,0,6,1,"[{'x': 'inteiro'}, {'y': 'inteiro'}]",[]
+ID,x,inteiro,0,0,0,func,1,6,0,[],[]
+ID,y,inteiro,0,0,0,func,1,6,0,[],[]
+ID,principal,inteiro,0,0,0,principal,0,10,1,"[{'x': 'inteiro'}, {'y': 'inteiro'}]",[]
+ID,x,inteiro,0,0,0,principal,1,10,0,[],[]
+ID,y,inteiro,0,0,0,principal,1,10,0,[],[]
 ID,a,flutuante,0,0,0,principal,0,11,0,[],[]
 ID,c,flutuante,0,0,0,principal,0,12,0,[],[]
 ID,b,inteiro,0,0,0,principal,0,13,0,[],[]
-ID,b,flutuante,0,0,0,principal,S,15,0,[],[{'c': 'flutuante'}]
-ID,a,inteiro,0,0,0,principal,S,17,0,[],"[{'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}]"
-ID,a,inteiro,0,0,0,principal,S,17,0,[],"[{'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}]"
-ID,a,inteiro,0,0,0,principal,S,17,0,[],"[{'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro', '5': 'inteiro'}]"
 ID,func,inteiro,0,0,0,principal,0,17,chamada_funcao,"[{'10': 'inteiro'}, {'5': 'inteiro'}]",[]

@@ -141,6 +141,8 @@ symbol_table = [
     'valor',
 ]  # tabela de simbolos
 
+expressoes = ['expressao_aditiva', 'expressao_multiplicativa']
+
 
 def retira_no(no_remover, tokens, nodes):
     auxiliar_arvore = []
@@ -187,6 +189,94 @@ conv_tipo = {
     'NUM_PONTO_FLUTUANTE': 'flutuante',
     'NUM_FLUTUANTE': 'flutuante'
 }  # dicionario para converter o tipo do no para o tipo da tabela de simbolos
+
+
+def retorna_tipo_retorno_numero(filhos):
+    indice = filhos.children[0].children[0].label
+    tipo_retorno = filhos.children[0].label
+
+    return conv_tipo.get(tipo_retorno), indice
+
+
+def retorna_tipo_retorno_id(filhos):
+    indice = filhos.children[0].label
+    tipo_retorno = 'parametro'
+
+    return conv_tipo.get(tipo_retorno), indice
+
+
+def procura_exp(retorna, lista_retorno):
+    lista_retorno = lista_retorno
+    retorno_dict = {}
+
+    for ret in retorna.children:
+        if ret.label == 'numero':
+
+            return processa_numero(ret, retorno_dict, lista_retorno)
+
+        elif ret.label == 'ID':
+
+            return processa_id(ret, retorno_dict, lista_retorno)
+
+        lista_retorno = procura_exp(ret, lista_retorno)
+
+    return lista_retorno
+
+
+def processa_retorno(retorna, retorno):
+
+    for ret in retorna.children:
+
+        if (ret.label in expressoes):
+            retorno = procura_exp(ret, retorno)
+            return retorno
+
+        processa_retorno(ret, retorno)
+
+    return retorno
+
+
+def encontra_tipo_nome_parametro(parametro, tipo, nome):
+    for param in parametro.children:
+        if param.label == 'INTEIRO' or param.label == 'FLUTUANTE':
+            tipo = param.children[0].label
+        elif param.label == 'id':
+            nome = param.children[0].label
+        tipo, nome = encontra_tipo_nome_parametro(param, tipo, nome)
+    return tipo, nome
+
+
+def processa_atr_exp(expressao, valores):
+    valor_dic = {}
+
+    for filhos in expressao.children:
+        if filhos.label == 'numero':
+            valores = processa_numero(filhos, valor_dic, valores)
+
+        elif filhos.label == 'ID':
+            valores = processa_id(filhos, valor_dic, valores)
+
+        valores = processa_atr_exp(filhos, valores)
+
+    return valores
+
+
+def processa_idx_ret(expressao):
+    indice = ''
+    tipo_retorno = ''
+
+    for filhos in expressao.children:
+        if filhos.label == 'numero':
+
+            return retorna_tipo_retorno_numero(filhos)
+
+        elif filhos.label == 'ID':
+
+            return retorna_tipo_retorno_id(filhos)
+
+        tipo_retorno, indice = processa_idx_ret(filhos)
+
+    return tipo_retorno, indice
 
 
 def processa_numero(ret, retorno, ret_lista):
@@ -274,7 +364,8 @@ def checa_retorno_funcao(tab_sym, error_handler):
                                         (tab_sym['escopo'] == 'principal') &
                                         (tab_sym['lex'] == 'retorna')]  # procura pelo retorno da funcao principal
         if retorno_principal.empty:
-            print(error_handler.newError('ERR-RET-TIP-INCOMP', value=main_func['tipo'].values[0]))
+            print(error_handler.newError('ERR-RET-TIP-INCOMP',
+                  value=main_func['tipo'].values[0]))
     else:
         # se nao tiver funcao principal, printa o erro
         print(error_handler.newError('ERR-SEM-MAIN-NOT-DECL'))
@@ -284,7 +375,7 @@ def checa_chamada_funcao(chamada, tab_sym, error_handler):
     declaracao_funcao = tab_sym.loc[(tab_sym['funcao'] == '1') & (
         tab_sym['lex'] == chamada['lex'])]  # procura pela declaracao da funcao
     if declaracao_funcao.empty:
-        
+
         print(error_handler.newError(
             'ERR-CHAMA-FUNC', value=chamada['lex']))  # se nao tiver declaracao, printa o erro
     else:
@@ -295,5 +386,5 @@ def checa_chamada_funcao(chamada, tab_sym, error_handler):
             print(error_handler.newError(
                 'ERR-PARAM-FUNC-INCOMP-MAIS', value=chamada['lex']))  # se a quantidade de parametros for diferente, printa o erro
         elif qtd_params < quantidade_parametros_declaracao:
-             print(error_handler.newError(
+            print(error_handler.newError(
                 'ERR-PARAM-FUNC-INCOMP-MENOS', value=chamada['lex']))  # se a quantidade de parametros for diferente, printa o erro

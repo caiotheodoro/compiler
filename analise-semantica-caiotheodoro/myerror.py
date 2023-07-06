@@ -24,6 +24,7 @@ class MyError():
         return message
       else:
         return ''
+    return message
     #print(message)
     #frame = inspect.stack()[1][0]
 
