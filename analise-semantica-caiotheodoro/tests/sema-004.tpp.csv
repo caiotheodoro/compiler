@@ -1,5 +1,5 @@
 token,lex,tipo,dimensao,tamanho dimensional 1,tamanho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
 ID,a,inteiro,0,0,0,global,0,4,0,[],[]
 ID,b,inteiro,0,0,0,global,0,5,0,[],[]
-ID,principal,inteiro,0,0,0,principal,0,7,S,[],[]
-ID,a,inteiro,0,0,0,principal,S,8,0,[],[{'10': 'inteiro'}]
+ID,principal,inteiro,0,0,0,principal,0,7,1,[],[]
+ID,a,inteiro,0,0,0,principal,1,8,0,[],[{'10': None}]

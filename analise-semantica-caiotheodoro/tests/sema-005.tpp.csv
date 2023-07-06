@@ -1,10 +1,9 @@
 token,lex,tipo,dimensao,tamanho dimensional 1,tamanho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
-ID,func,inteiro,0,0,0,func,0,4,S,"[{'x': 'inteiro'}, {'y': 'inteiro'}]",[]
-ID,x,inteiro,0,0,0,func,S,4,0,[],[]
-ID,y,inteiro,0,0,0,func,S,4,0,[],[]
-ID,retorna,inteiro,0,0,0,func,0,5,S,[],"[{'x': 'inteiro'}, {'y': 'inteiro'}]"
-ID,principal,inteiro,0,0,0,principal,0,8,S,[],[]
+ID,func,inteiro,0,0,0,func,0,4,1,"[{'x': 'inteiro'}, {'y': 'inteiro'}]",[]
+ID,x,inteiro,0,0,0,func,1,4,0,[],[]
+ID,y,inteiro,0,0,0,func,1,4,0,[],[]
+ID,principal,inteiro,0,0,0,principal,0,8,1,"[{'x': 'inteiro'}, {'y': 'inteiro'}]",[]
+ID,x,inteiro,0,0,0,principal,1,8,0,[],[]
+ID,y,inteiro,0,0,0,principal,1,8,0,[],[]
 ID,a,inteiro,0,0,0,principal,0,9,0,[],[]
-ID,a,inteiro,0,0,0,principal,S,10,0,[],"[{'func': 'inteiro', '10': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro'}]"
-ID,a,inteiro,0,0,0,principal,S,10,0,[],"[{'func': 'inteiro', '10': 'inteiro'}, {'func': 'inteiro', '10': 'inteiro'}]"
 ID,func,inteiro,0,0,0,principal,0,10,chamada_funcao,[{'10': 'inteiro'}],[]

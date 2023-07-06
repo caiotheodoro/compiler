@@ -1,24 +1,43 @@
-token,lex,tipo,dimensao,tamanho dimensional 1,tamnho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
-ID,n,inteiro,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,var,flutuante,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,fatorial,flutuante,0,0,0,global,0,,1,"[{'n': ''}, {'m': ''}, {'fat': ''}, {'fat2': ''}, {'fat3': ''}]",n/a
-ID,n,,0,0,0,global,1,,0,n/a,n/a
-ID,m,,0,0,0,global,1,,0,n/a,n/a
-ID,p,flutuante,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,principal,inteiro,0,0,0,global,0,,1,"[{'n': ''}, {'m': ''}, {'fat': ''}, {'fat2': ''}, {'fat3': ''}]",n/a
-ID,n,,0,0,0,global,1,,0,n/a,n/a
-ID,m,,0,0,0,global,1,,0,n/a,n/a
-ID,fatorial,flutuante,0,0,0,global,0,,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",n/a
-ID,a,inteiro,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,b,flutuante,0,0,0,global,0,declaracao_variaveis,0,n/a,n/a
-ID,fatorial2,inteiro,0,0,0,global,0,,1,"[{'n': ''}, {'m': ''}, {'fat': ''}, {'fat2': ''}, {'fat3': ''}]",n/a
-ID,n,,0,0,0,global,1,,0,n/a,n/a
-ID,m,,0,0,0,global,1,,0,n/a,n/a
-ID,fat,,0,0,0,global,1,,0,n/a,n/a
-ID,fat2,,0,0,0,global,1,,0,n/a,n/a
-ID,fat3,,0,0,0,global,1,,0,n/a,n/a
-ID,fatorial,flutuante,0,0,0,global,0,,chamada_funcao,"[{'fatorial': 'parametro'}, {'1.0': 'flutuante'}]",n/a
-ID,fatorial,flutuante,0,0,0,global,0,,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",n/a
-ID,fatorial,flutuante,0,0,0,global,0,,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",n/a
-ID,fatorial,flutuante,0,0,0,global,0,,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",n/a
-ID,fatorial,flutuante,0,0,0,global,0,,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",n/a
+token,lex,tipo,dimensao,tamanho dimensional 1,tamanho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
+ID,n,inteiro,0,0,0,global,0,3,0,[],[]
+ID,var,flutuante,0,0,0,global,0,4,0,[],[]
+ID,fatorial,inteiro,0,0,0,fatorial,0,6,1,"[{'n': 'inteiro'}, {'m': 'flutuante'}, {'fat': 'inteiro'}, {'fat2': 'flutuante'}, {'fat3': 'inteiro'}]",[]
+ID,n,inteiro,0,0,0,fatorial,1,6,0,[],[]
+ID,m,flutuante,0,0,0,fatorial,1,6,0,[],[]
+ID,m,"Empty DataFrame
+Columns: [token, lex, tipo, dimensao, tamanho dimensional 1, tamanho dimensional 2, escopo, iniciacao, linha, funcao, parametros, valor]
+Index: []",0,[],[],fatorial,1,9,0,[],[{'5': None}]
+ID,p,flutuante,0,0,0,fatorial,0,15,0,[],[]
+ID,z,"Empty DataFrame
+Columns: [token, lex, tipo, dimensao, tamanho dimensional 1, tamanho dimensional 2, escopo, iniciacao, linha, funcao, parametros, valor]
+Index: []",0,[],[],fatorial,1,19,0,[],[{'1.9': None}]
+ID,z,"Empty DataFrame
+Columns: [token, lex, tipo, dimensao, tamanho dimensional 1, tamanho dimensional 2, escopo, iniciacao, linha, funcao, parametros, valor]
+Index: []",0,[],[],fatorial,1,20,0,[],"[{'z': None, '1': None}, {'z': None, '1': None}]"
+ID,z,"Empty DataFrame
+Columns: [token, lex, tipo, dimensao, tamanho dimensional 1, tamanho dimensional 2, escopo, iniciacao, linha, funcao, parametros, valor]
+Index: []",0,[],[],fatorial,1,20,0,[],"[{'z': None, '1': None}, {'z': None, '1': None}]"
+ID,principal,inteiro,0,0,0,principal,0,26,1,"[{'n': 'inteiro'}, {'m': 'flutuante'}, {'fat': 'inteiro'}, {'fat2': 'flutuante'}, {'fat3': 'inteiro'}]",[]
+ID,n,inteiro,0,0,0,principal,1,26,0,[],[]
+ID,m,flutuante,0,0,0,principal,1,26,0,[],[]
+ID,fatorial,inteiro,0,0,0,principal,0,28,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",[]
+ID,a,inteiro,0,0,0,principal,0,33,0,[],[]
+ID,b,flutuante,0,0,0,principal,0,34,0,[],[]
+ID,fatorial2,inteiro,0,0,0,fatorial2,0,36,1,"[{'n': 'inteiro'}, {'m': 'flutuante'}, {'fat': 'inteiro'}, {'fat2': 'flutuante'}, {'fat3': 'inteiro'}]",[]
+ID,n,inteiro,0,0,0,fatorial2,1,36,0,[],[]
+ID,m,flutuante,0,0,0,fatorial2,1,36,0,[],[]
+ID,fat,inteiro,0,0,0,fatorial2,1,36,0,[],[]
+ID,fat2,flutuante,0,0,0,fatorial2,1,36,0,[],[]
+ID,fat3,inteiro,0,0,0,fatorial2,1,36,0,[],[]
+ID,a,inteiro,0,0,0,fatorial2,1,39,0,[],[{'1': None}]
+ID,fatorial,inteiro,0,0,0,fatorial2,0,46,chamada_funcao,"[{'fatorial': None}, {'1.0': 'flutuante'}]",[]
+ID,fatorial,inteiro,0,0,0,fatorial2,0,46,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",[]
+ID,a,inteiro,0,0,0,fatorial2,1,48,0,[],"[{'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}]"
+ID,a,inteiro,0,0,0,fatorial2,1,48,0,[],"[{'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}]"
+ID,a,inteiro,0,0,0,fatorial2,1,48,0,[],"[{'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}]"
+ID,fatorial,inteiro,0,0,0,fatorial2,0,48,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",[]
+ID,b,flutuante,0,0,0,fatorial2,1,51,0,[],"[{'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}]"
+ID,b,flutuante,0,0,0,fatorial2,1,51,0,[],"[{'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}]"
+ID,b,flutuante,0,0,0,fatorial2,1,51,0,[],"[{'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}, {'fatorial': None, '1': None, '1.0': None}]"
+ID,fatorial,inteiro,0,0,0,fatorial2,0,51,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",[]
+ID,fatorial,inteiro,0,0,0,fatorial2,0,54,chamada_funcao,"[{'1': 'inteiro'}, {'1.0': 'flutuante'}]",[]

@@ -141,6 +141,8 @@ symbol_table = [
     'valor',
 ]  # tabela de simbolos
 
+expressoes = ['expressao_aditiva', 'expressao_multiplicativa']
+
 
 def retira_no(no_remover, tokens, nodes):
     auxiliar_arvore = []
@@ -187,6 +189,94 @@ conv_tipo = {
     'NUM_PONTO_FLUTUANTE': 'flutuante',
     'NUM_FLUTUANTE': 'flutuante'
 }  # dicionario para converter o tipo do no para o tipo da tabela de simbolos
+
+
+def retorna_tipo_retorno_numero(filhos):
+    indice = filhos.children[0].children[0].label
+    tipo_retorno = filhos.children[0].label
+
+    return conv_tipo.get(tipo_retorno), indice
+
+
+def retorna_tipo_retorno_id(filhos):
+    indice = filhos.children[0].label
+    tipo_retorno = 'parametro'
+
+    return conv_tipo.get(tipo_retorno), indice
+
+
+def procura_exp(retorna, lista_retorno):
+    lista_retorno = lista_retorno
+    retorno_dict = {}
+
+    for ret in retorna.children:
+        if ret.label == 'numero':
+
+            return processa_numero(ret, retorno_dict, lista_retorno)
+
+        elif ret.label == 'ID':
+
+            return processa_id(ret, retorno_dict, lista_retorno)
+
+        lista_retorno = procura_exp(ret, lista_retorno)
+
+    return lista_retorno
+
+
+def processa_retorno(retorna, retorno):
+
+    for ret in retorna.children:
+
+        if (ret.label in expressoes):
+            retorno = procura_exp(ret, retorno)
+            return retorno
+
+        processa_retorno(ret, retorno)
+
+    return retorno
+
+
+def encontra_tipo_nome_parametro(parametro, tipo, nome):
+    for param in parametro.children:
+        if param.label == 'INTEIRO' or param.label == 'FLUTUANTE':
+            tipo = param.children[0].label
+        elif param.label == 'id':
+            nome = param.children[0].label
+        tipo, nome = encontra_tipo_nome_parametro(param, tipo, nome)
+    return tipo, nome
+
+
+def processa_atr_exp(expressao, valores):
+    valor_dic = {}
+
+    for filhos in expressao.children:
+        if filhos.label == 'numero':
+            valores = processa_numero(filhos, valor_dic, valores)
+
+        elif filhos.label == 'ID':
+            valores = processa_id(filhos, valor_dic, valores)
+
+        valores = processa_atr_exp(filhos, valores)
+
+    return valores
+
+
+def processa_idx_ret(expressao):
+    indice = ''
+    tipo_retorno = ''
+
+    for filhos in expressao.children:
+        if filhos.label == 'numero':
+
+            return retorna_tipo_retorno_numero(filhos)
+
+        elif filhos.label == 'ID':
+
+            return retorna_tipo_retorno_id(filhos)
+
+        tipo_retorno, indice = processa_idx_ret(filhos)
+
+    return tipo_retorno, indice
 
 
 def processa_numero(ret, retorno, ret_lista):

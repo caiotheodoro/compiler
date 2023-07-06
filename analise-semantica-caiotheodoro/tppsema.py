@@ -1,13 +1,17 @@
 
+import logging
+from sys import argv
+from utils import encontra_tipo_nome_parametro, processa_atr_exp, processa_retorno, conv_tipo, processa_idx_ret, retorna_tipo_retorno_numero, retorna_tipo_retorno_id, checa_chamada_funcao, checa_retorno_funcao, checa_inicializacao_variavel, checa_declaracao_variavel, aux_tipo, aux_simbolos_tabela, nodes, poda_arvore, processa_cabecalho, processa_lista_parametros, processa_tipo, tokens, processa_numero, processa_id, processa_parametro
+from utils import encontra_tipo_nome_parametro,  processa_retorno, processa_idx_ret, aux_tipo, aux_simbolos_tabela, nodes, poda_arvore, tokens, processa_numero, processa_id
 from myerror import MyError
 from anytree.exporter import UniqueDotExporter
 from tppparser import retorna_arvore
 import sys
 import os
-from utils import encontra_tipo_nome_parametro,  processa_retorno, processa_idx_ret, aux_tipo, aux_simbolos_tabela, nodes, poda_arvore, tokens, processa_numero, processa_id
-from sys import argv
+<< << << < HEAD
+== == == =
+>>>>>> > 67246b8d49c4a0d0a578118df2588c305fe30837
 
-import logging
 
 logging.basicConfig(
     level=logging.DEBUG,
