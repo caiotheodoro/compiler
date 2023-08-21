@@ -693,209 +693,123 @@ def processa_attr_tipo(variavel_atual, tipo_variavel, escopo_variavel, inicializ
 
 
 def sema(tab_sym):
+    # Filter variables and functions
     variaveis = tab_sym.loc[tab_sym['funcao'] == '0']
-
     funcoes = tab_sym.loc[tab_sym['funcao'] != '0']
     funcoes = funcoes['lex'].unique()
 
-    i = 0
-
-    variaveis_repetidas_valores_inicio = variaveis['lex'].unique()
-    var_verificacao = variaveis
-    for var in variaveis_repetidas_valores_inicio:
-
-        linhas = tab_sym[tab_sym['lex'] ==
-                         var].index.tolist()  # pega as linhas
-        linha = tab_sym[tab_sym['lex'] == var]
-
-        if len(linhas) > 1:
-            linhas = linha[linha['iniciacao'] ==
-                           '0'].index.tolist()  # pega as linhas
-            if len(linhas) > 1:
-                var_verificacao.drop(linhas[0])
-
+    # Check for duplicate variable declarations
     for _, row in variaveis.iterrows():
-        lista_declaracao_variavel = tab_sym.loc[(tab_sym['lex'] == row['lex']) & (
-            tab_sym['iniciacao'] == '0') & (tab_sym['escopo'] == row['escopo'])]
+        lex = row['lex']
+        escopo = row['escopo']
+        lista_declaracao_variavel = tab_sym.loc[
+            (tab_sym['lex'] == lex) & (tab_sym['iniciacao'] == '0') & (tab_sym['escopo'] == escopo)]
 
         if len(lista_declaracao_variavel) > 1:
-            print(error_handler.newError(
-                'WAR-ALR-DECL', value=row['lex']))
+            print(error_handler.newError('WAR-ALR-DECL', value=lex))
 
-    escopo_variaveis_verificacao = var_verificacao['escopo'].unique()
-    for e in escopo_variaveis_verificacao:
-        for var in variaveis_repetidas_valores_inicio:
-            mesmo_escopo = var_verificacao[(var_verificacao['escopo'] == e) & (
-                var_verificacao['lex'] == var)]
+    # Check for duplicate variable names within the same scope
+    variaveis = variaveis.drop_duplicates(
+        subset=['lex', 'escopo', 'iniciacao'], keep='first')
 
-            if len(mesmo_escopo) > 1:
-                linha_mesmo_escopo = mesmo_escopo.index.tolist()  # pega as linhas
-                var_verificacao.drop(linha_mesmo_escopo[0])
-
-    for linha in var_verificacao.index:
-        inicializacao_variaveis = tab_sym.loc[(tab_sym['lex'] == variaveis['lex'][linha]) & (
-            tab_sym['escopo'] == variaveis['escopo'][linha]) & (tab_sym['iniciacao'] == '1')]  # pega as linhas
-        inicializacao_variaveis = inicializacao_variaveis['valor'].values
-
-        inicializacao_variaveis_valores = []
-        if len(inicializacao_variaveis) > 0:
-            inicializacao_variaveis_valores = inicializacao_variaveis
-
-        if len(inicializacao_variaveis_valores) > 0:
-            _, _, _, _ = processa_attr_tipo(
-                variaveis.iloc[i], variaveis['tipo'][linha], variaveis['escopo'][linha], inicializacao_variaveis_valores, variaveis, funcoes, tab_sym)  # verifica se o tipo da variável é compatível com o tipo da inicialização
-
-        i += 1
-
-    variaveis_repetidas_valores = variaveis['lex'].unique()
-
-    for var_rep in variaveis_repetidas_valores:
-        variaveis_repetidas = variaveis.loc[variaveis['lex'] == var_rep]
-
-        if len(variaveis_repetidas) > 1:
-            variaveis_repetidas_linhas = variaveis_repetidas[variaveis_repetidas['iniciacao'] == '0']
-            escopos_variaveis = variaveis_repetidas_linhas['escopo'].unique()
-
-            for esc in escopos_variaveis:
-                variaveis_repetidas_escopo_igual_index = variaveis_repetidas_linhas.loc[
-                    variaveis_repetidas_linhas['escopo'] == esc].index
-                # remove as variáveis repetidas
-                variaveis.drop(variaveis_repetidas_escopo_igual_index[0])
-
-        elif len(variaveis_repetidas) == 0:
-            print(error_handler.newError('ERR-VAR-NOT-DECL', value=var_rep))
-
-    repetidos_variaveis_atribuicao = variaveis['lex'].unique()
-    for rep in repetidos_variaveis_atribuicao:
-        _ = variaveis.loc[variaveis['lex'] == rep]
-        tabela_variaveis_repetida_index = variaveis.loc[variaveis['lex'] == rep].index
-
-        if len(tabela_variaveis_repetida_index) > 1:
-            variaveis.drop(tabela_variaveis_repetida_index[0])
-
-    if ('principal' not in funcoes):
-        print(error_handler.newError('ERR-FUNC-NOT-DECL'))
-
+    # Check for uninitialized variables
     for _, row in variaveis.iterrows():
-        dimensao_variavel = row['dimensao']
-
-        if int(dimensao_variavel) > 0:
-            # verifica se o tamanho da dimensão é inteiro
-            if int(dimensao_variavel) == 1 and '.' in str(row['tamanho dimensional 1']):
-                print(error_handler.newError(
-                    'ERR-IND-ARRAY', value=row['lex']))
-            # verifica se o tamanho da dimensão é inteiro
-            elif int(dimensao_variavel) == 2 and '.' in str(row['tamanho dimensional 2']):
-                print(error_handler.newError(
-                    'ERR-IND-ARRAY', value=row['lex']))
-
+        lex = row['lex']
+        escopo = row['escopo']
         inicializada = False
 
-        df = tab_sym.loc[tab_sym['lex'] == row['lex']]
-
-        if (len(df) > 1):
-            for lin in range(len(df)):
-                if (df.iloc[lin]['iniciacao'] != '0'):
-                    inicializada = True
+        df = tab_sym.loc[(tab_sym['lex'] == lex) &
+                         (tab_sym['escopo'] == escopo)]
+        if len(df) > 1:
+            inicializada = any(df['iniciacao'] != '0')
         else:
-            if (tab_sym.iloc[0]['iniciacao'] != '0'):
-                inicializada = True
+            inicializada = tab_sym.iloc[0]['iniciacao'] != '0'
 
-        ret_params = tab_sym.loc[(tab_sym['lex'] == 'retorna') & (
-            tab_sym['escopo'] == row['escopo'])]
-        ret_params = ret_params['valor']
+        if not inicializada:
+            print(error_handler.newError('WAR-SEM-VAR-DECL-NOT-USED', value=lex))
 
-        ret_params = ret_params.values
+    # Check for missing 'principal' function
+    if 'principal' not in funcoes:
+        print(error_handler.newError('ERR-FUNC-NOT-DECL'))
 
-        if len(ret_params) > 0:
-            for retornos_variaveis in ret_params:
-                for rt_vs in retornos_variaveis:
-                    # verifica se a variável de retorno foi inicializada
-                    for nome_variavel_retorno, tipo_variavel_retorno in rt_vs.items():
-
-                        if (row['lex'] == nome_variavel_retorno):
-                            inicializada = True
-
-        if (inicializada == False):
-            print(error_handler.newError(
-                'WAR-SEM-VAR-DECL-NOT-USED', value=row['lex']))
-
+    # Check for 'principal' function constraints
     for func in funcoes:
         if func == 'principal':
             tabela_retorno = tab_sym.loc[tab_sym['lex'] == 'retorno']
-
-            if (tabela_retorno.shape[0] == 0):
+            if tabela_retorno.shape[0] == 0:
                 print(error_handler.newError(
                     'ERR-RET-TIP-INCOMP', value=['inteiro']))
 
-            chamada_funcao_principal = tab_sym.loc[(
-                tab_sym['funcao'] == 'chamada_funcao') & (tab_sym['lex'] == 'principal')]
+            chamada_funcao_principal = tab_sym.loc[
+                (tab_sym['funcao'] == 'chamada_funcao') & (tab_sym['lex'] == 'principal')]
 
             if len(chamada_funcao_principal) > 0:
                 verifica_escopo = chamada_funcao_principal['escopo'].values[0]
-
                 if verifica_escopo == 'principal':
-                    print(error_handler.newError(
-                        'WAR-REC-PRIN'))
+                    print(error_handler.newError('WAR-REC-PRIN'))
                 else:
-                    print(error_handler.newError(
-                        'ERR-REC-PRIN'))
+                    print(error_handler.newError('ERR-REC-PRIN'))
         else:
             chamada_funcao = tab_sym.loc[(tab_sym['lex'] == func) & (
                 tab_sym['funcao'] == 'chamada_funcao')]
             declaracao_funcao = tab_sym.loc[(
                 tab_sym['lex'] == func) & (tab_sym['funcao'] == '1')]
 
-        if func == 'retorna':
-            escopo_retorno = declaracao_funcao['escopo'].values[0]
-            variavel_retornada = declaracao_funcao['valor'].values[0]
+            if func == 'retorna':
+                escopo_retorno = declaracao_funcao['escopo'].values[0]
+                variavel_retornada = declaracao_funcao['valor'].values[0]
 
-            for var in variavel_retornada:  # verifica se a variável de retorno foi declarada
-                for n, t in var.items():
-                    variavel_retornada = n
+                for var in variavel_retornada:
+                    for n, t in var.items():
+                        variavel_retornada = n
 
-            tipo_retorno_funcao = declaracao_funcao['tipo'].values[0]
+                tipo_retorno_funcao = declaracao_funcao['tipo'].values[0]
 
-            # verifica se a variável de retorno foi declarada
-            if variavel_retornada in tab_sym['lex'].unique():
-                declaracao_variavel = tab_sym.loc[(tab_sym['lex'] == variavel_retornada) & (
-                    tab_sym['escopo'] == escopo_retorno) & (tab_sym['iniciacao'] == '0')]
+                if variavel_retornada in tab_sym['lex'].unique():
+                    declaracao_variavel = tab_sym.loc[
+                        (tab_sym['lex'] == variavel_retornada) & (tab_sym['escopo'] == escopo_retorno) & (
+                            tab_sym['iniciacao'] == '0')]
 
-                if len(declaracao_variavel) == 0:
-                    declaracao_variavel_global = tab_sym.loc[(tab_sym['lex'] == variavel_retornada) & (
-                        tab_sym['escopo'] == 'global') & (tab_sym['iniciacao'] == '0')]
+                    if len(declaracao_variavel) == 0:
+                        declaracao_variavel_global = tab_sym.loc[
+                            (tab_sym['lex'] == variavel_retornada) & (tab_sym['escopo'] == 'global') & (
+                                tab_sym['iniciacao'] == '0')]
 
-                    if len(declaracao_variavel_global) == 0:
-                        declaracao_variavel_global = tab_sym.loc[(tab_sym['lex'] == variavel_retornada) & (
-                            tab_sym['escopo'] == escopo_retorno) & (tab_sym['iniciacao'] == '1')]
+                        if len(declaracao_variavel_global) == 0:
+                            declaracao_variavel_global = tab_sym.loc[
+                                (tab_sym['lex'] == variavel_retornada) & (tab_sym['escopo'] == escopo_retorno) & (
+                                    tab_sym['iniciacao'] == '1')]
 
-                    tipo_retorno_funcao = declaracao_variavel_global['tipo'].values[0]
+                        tipo_retorno_funcao = declaracao_variavel_global['tipo'].values[0]
 
-            procura_funcao_escopo = tab_sym.loc[(tab_sym['funcao'] == '1') & (
-                tab_sym['escopo'] == escopo_retorno) & (tab_sym['lex'] != 'retorna')]  # verifica se a função foi declarada
+                procura_funcao_escopo = tab_sym.loc[
+                    (tab_sym['funcao'] == '1') & (tab_sym['escopo'] == escopo_retorno) & (tab_sym['lex'] != 'retorna')]
 
-            nome_funcao = procura_funcao_escopo['lex'].values[0]
-            tipo_funcao = procura_funcao_escopo['tipo'].values[0]
+                nome_funcao = procura_funcao_escopo['lex'].values[0]
+                tipo_funcao = procura_funcao_escopo['tipo'].values[0]
 
-            if tipo_funcao != tipo_retorno_funcao:
-                print(error_handler.newError('ERR-FUNC-TYPE-RETURN',
-                      value=(nome_funcao, tipo_funcao, tipo_retorno_funcao)))  # verifica se o tipo de retorno da função é compatível com o tipo da variável de retorno
+                if tipo_funcao != tipo_retorno_funcao:
+                    print(error_handler.newError('ERR-FUNC-TYPE-RETURN',
+                                                 value=(nome_funcao, tipo_funcao, tipo_retorno_funcao)))
 
-            if len(chamada_funcao) > 0:
-                if len(declaracao_funcao) < 1:
-                    print(error_handler.newError('ERR-CHAMA-FUNC', value=func))
+                if len(chamada_funcao) > 0:
+                    if len(declaracao_funcao) < 1:
+                        print(error_handler.newError(
+                            'ERR-CHAMA-FUNC', value=func))
+                    else:
+                        quantidade_parametros_chamada = chamada_funcao['parametros'].values[0]
+                        quantidade_parametros_declaracao_funcao = declaracao_funcao[
+                            'parametros'].values[0]
+
+                        if len(quantidade_parametros_chamada) != len(
+                                quantidade_parametros_declaracao_funcao):
+                            print(error_handler.newError('ERR-PARAM-FUNC-INCOMP-' + (
+                                'MENOS' if len(quantidade_parametros_chamada) <
+                                len(quantidade_parametros_declaracao_funcao) else 'MAIS'), value=func))
                 else:
-                    quantidade_parametros_chamada = chamada_funcao['parametros'].values[0]
-                    quantidade_parametros_declaracao_funcao = declaracao_funcao[
-                        'parametros'].values[0]  # verifica se a quantidade de parâmetros da chamada da função é compatível com a quantidade de parâmetros da declaração da função
-
-                    if len(quantidade_parametros_chamada) != len(quantidade_parametros_declaracao_funcao):
-                        print(error_handler.newError('ERR-PARAM-FUNC-INCOMP-' + ('MENOS' if len(quantidade_parametros_chamada)
-                              < len(quantidade_parametros_declaracao_funcao) else 'MAIS'), value=func))  # verifica se a quantidade de parâmetros da chamada da função é compatível com a quantidade de parâmetros da declaração da função
-            else:
-                if len(declaracao_funcao) > 0 and func != 'retorna':
-                    print(error_handler.newError(
-                        'WAR-NOT-USED-FUNC', value=func))
+                    if len(declaracao_funcao) > 0 and func != 'retorna':
+                        print(error_handler.newError(
+                            'WAR-NOT-USED-FUNC', value=func))
 
 
 if __name__ == "__main__":
