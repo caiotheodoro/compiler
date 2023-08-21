@@ -22,6 +22,7 @@ escopo = 'global'
 root = None
 tipo = ''
 func_name = ''
+variavel_nao_declarada = []
 tipo_retorno = ''
 parametros = []
 retorno = []
@@ -196,8 +197,11 @@ def processa_declaracao_funcao(filho, tab_sym):
             for nome_retorno, tipo_retorno in ret.items():  # para cada retorno, insere na tabela de simbolos
                 tipo_retorno = tab_sym.loc[tab_sym['lex']
                                            == nome_retorno]['tipo'].values  # encontra o tipo do retorno
-                tipo_variaveis_retorno = tipo_retorno[0] if len(
-                    tipo_retorno) > 0 else 'vazio'  # se não tiver tipo, retorna vazio
+
+                if len(tipo_retorno) > 0:
+                    tipo_variaveis_retorno = tipo_retorno[0]
+                else:
+                    tipo_variaveis_retorno = 'vazio'  # se não tiver tipo, retorna vazio
 
                 # cria um dicionario com o idx e o tipo do retorno
                 tipo_ret = {nome_retorno: tipo_variaveis_retorno}
@@ -320,8 +324,12 @@ def process_function_declaration(tab_sym, filho, escopo):
             for nome_retorno, _ in ret.items():
                 tipo_retorno = tab_sym.loc[tab_sym['lex']
                                            == nome_retorno]['tipo'].values  # se não tiver tipo, retorna vazio
-                tipo_variaveis_retorno = tipo_retorno[0] if len(
-                    tipo_retorno) > 0 else 'vazio'
+
+                if len(tipo_retorno) > 0:
+                    tipo_variaveis_retorno = tipo_retorno[0]
+                else:
+                    tipo_variaveis_retorno = 'vazio'
+
                 muda_tipo_retorno = {
                     nome_retorno: tipo_variaveis_retorno}  # insere na lista
                 muda_tipo_retorno_lista.append(muda_tipo_retorno)
@@ -362,8 +370,10 @@ def processa_decl_func(tab_sym, filho):
                 tipo_retorno = tab_sym.loc[tab_sym['lex']  # se não tiver tipo, retorna vazio
                                            == nome_retorno]['tipo'].values
 
-                tipo_variaveis_retorno = tipo_retorno[0] if len(
-                    tipo_retorno) > 0 else 'vazio'
+                if len(tipo_retorno) > 0:
+                    tipo_variaveis_retorno = tipo_retorno[0]
+                else:
+                    tipo_variaveis_retorno = 'vazio'
 
                 muda_tipo_retorno = {
                     nome_retorno: tipo_variaveis_retorno}  # insere na lista
@@ -387,6 +397,7 @@ def processa_ret(tab_sym):
     linha_retorno_index = linha_retorno.index[0]
 
     retorno_linha = linha_retorno['valor'].values.tolist()
+
     retorno = retorno_linha[0]
 
     if not linha_retorno.empty:
@@ -399,9 +410,12 @@ def processa_ret(tab_sym):
                     tab_sym['escopo'] == escopo)]['tipo'].values
 
                 # se não tiver tipo, retorna vazio
-                tipo_variaveis_retorno = tipo_retorno[0] if tipo_retorno else 'vazio'
+                if len(tipo_retorno) > 0:
+                    tipo_variaveis_retorno = tipo_retorno[0]
+                else:
+                    tipo_variaveis_retorno = 'vazio'
 
-                if not tipo_retorno and nome_retorno not in variavel_nao_declarada:  # se não tiver tipo, retorna vazio
+                if not tipo_retorno.size > 0 and nome_retorno not in variavel_nao_declarada:  # se não tiver tipo, retorna vazio
                     print(error_handler.newError(
                         'WAR-SEM-VAR-DECL-NOT-USED', value=nome_retorno))
                     variavel_nao_declarada.append(nome_retorno)
@@ -416,6 +430,7 @@ def processa_ret(tab_sym):
             tipo = 'flutuante' if 'flutuante' in tipos else 'inteiro'
 
         tab_sym.at[linha_retorno_index, 'valor'] = muda_tipo_retorno_lista
+
         tab_sym.at[linha_retorno_index, 'tipo'] = tipo
 
 
@@ -499,7 +514,8 @@ def tab_sym_aux(tree, tab_sym):
                             print(error_handler.newError(
                                 'ERR-VAR-NOT-DECL', value=valor))
 
-                    tipo = conv_tipo.get(tipo)
+                    if conv_tipo.get(tipo):
+                        tipo = conv_tipo.get(tipo)
 
                     valor_atribuido[valor] = tipo
                     valores.append(valor_atribuido)
@@ -676,7 +692,7 @@ def processa_attr_tipo(variavel_atual, tipo_variavel, escopo_variavel, inicializ
     return status, tipo_variavel_inicializacao_retorno, tipo_variavel_novo, nome_inicializacao
 
 
-def verifica_regras_semanticas(tab_sym):
+def sema(tab_sym):
     variaveis = tab_sym.loc[tab_sym['funcao'] == '0']
 
     funcoes = tab_sym.loc[tab_sym['funcao'] != '0']
@@ -785,13 +801,14 @@ def verifica_regras_semanticas(tab_sym):
             if (tab_sym.iloc[0]['iniciacao'] != '0'):
                 inicializada = True
 
-        retorna_parametros = tab_sym.loc[(tab_sym['lex'] == 'retorna') & (
+        ret_params = tab_sym.loc[(tab_sym['lex'] == 'retorna') & (
             tab_sym['escopo'] == row['escopo'])]
-        retorna_parametros = retorna_parametros['valor']
-        retorna_parametros = retorna_parametros.values
+        ret_params = ret_params['valor']
 
-        if len(retorna_parametros) > 0:
-            for retornos_variaveis in retorna_parametros:
+        ret_params = ret_params.values
+
+        if len(ret_params) > 0:
+            for retornos_variaveis in ret_params:
                 for rt_vs in retornos_variaveis:
                     # verifica se a variável de retorno foi inicializada
                     for nome_variavel_retorno, tipo_variavel_retorno in rt_vs.items():
@@ -901,7 +918,7 @@ if __name__ == "__main__":
                 root, tab_sym)  # monta a tabela de simbolos
 
             # verifica as regras semanticas
-            verifica_regras_semanticas(tab_sym)
+            sema(tab_sym)
 
             # salva a tabela de simbolos em um arquivo csv
             tab_sym.to_csv(f'{argv[1]}.csv', index=None, header=True)
