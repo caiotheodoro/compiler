@@ -1,8 +1,6 @@
 import pandas as pd
-from llvmlite import binding
 from llvmlite import ir as llvmir
-
-
+from llvmlite import binding 
 def define_column(input, lexpos):
     begin_line = input.rfind("\n", 0, lexpos) + 1
     return (lexpos - begin_line) + 1
@@ -52,7 +50,7 @@ def caps(word):
     return word.upper()
 
 
-nodes = ['se', 'corpo', 'retorna', 'escreva', 'repita', 'até', 'leia']
+nodes = ['retorna','corpo','leia','escreva','se','repita', 'até']
 
 tokens = [
     'ID',
@@ -122,19 +120,18 @@ tokens = [
     'operador_multiplicacao',
     'vezes',
     'id',
-    'declaracao_variaveis',
     'atribuicao',
     'operador_relacional',
     'MAIOR']  # lista de tokens para poda
 
-
+op_list = ['+','0','*',]
 symbol_table = [
     'token',
     'lex',
     'tipo',
     'dimensao',
     "tamanho dimensional 1",
-    'tamnho dimensional 2',
+    'tamanho dimensional 2',
     'escopo',
     'iniciacao',
     'linha',
@@ -143,8 +140,7 @@ symbol_table = [
     'valor',
 ]  # tabela de simbolos
 
-op_list = ['/', '+', '-', '*']
-comp_list = ['<', '>']
+expressoes = ['expressao_aditiva', 'expressao_multiplicativa']
 
 
 def retira_no(no_remover, tokens, nodes):
@@ -194,6 +190,94 @@ conv_tipo = {
 }  # dicionario para converter o tipo do no para o tipo da tabela de simbolos
 
 
+def retorna_tipo_retorno_numero(filhos):
+    indice = filhos.children[0].children[0].label
+    tipo_retorno = filhos.children[0].label
+
+    return conv_tipo.get(tipo_retorno), indice
+
+
+def retorna_tipo_retorno_id(filhos):
+    indice = filhos.children[0].label
+    tipo_retorno = 'parametro'
+
+    return conv_tipo.get(tipo_retorno), indice
+
+
+def procura_exp(retorna, lista_retorno):
+    lista_retorno = lista_retorno
+    retorno_dict = {}
+
+    for ret in retorna.children:
+        if ret.label == 'numero':
+
+            return processa_numero(ret, retorno_dict, lista_retorno)
+
+        elif ret.label == 'ID':
+
+            return processa_id(ret, retorno_dict, lista_retorno)
+
+        lista_retorno = procura_exp(ret, lista_retorno)
+
+    return lista_retorno
+
+
+def processa_retorno(retorna, retorno):
+
+    for ret in retorna.children:
+
+        if (ret.label in expressoes):
+            retorno = procura_exp(ret, retorno)
+            return retorno
+
+        processa_retorno(ret, retorno)
+
+    return retorno
+
+
+def encontra_tipo_nome_parametro(parametro, tipo, nome):
+    for param in parametro.children:
+        if param.label == 'INTEIRO' or param.label == 'FLUTUANTE':
+            tipo = param.children[0].label
+        elif param.label == 'id':
+            nome = param.children[0].label
+        tipo, nome = encontra_tipo_nome_parametro(param, tipo, nome)
+    return tipo, nome
+
+
+def processa_atr_exp(expressao, valores):
+    valor_dic = {}
+
+    for filhos in expressao.children:
+        if filhos.label == 'numero':
+            valores = processa_numero(filhos, valor_dic, valores)
+
+        elif filhos.label == 'ID':
+            valores = processa_id(filhos, valor_dic, valores)
+
+        valores = processa_atr_exp(filhos, valores)
+
+    return valores
+
+
+def processa_idx_ret(expressao):
+    indice = ''
+    tipo_retorno = ''
+
+    for filhos in expressao.children:
+        if filhos.label == 'numero':
+
+            return retorna_tipo_retorno_numero(filhos)
+
+        elif filhos.label == 'ID':
+
+            return retorna_tipo_retorno_id(filhos)
+
+        tipo_retorno, indice = processa_idx_ret(filhos)
+
+    return tipo_retorno, indice
+
+
 def processa_numero(ret, retorno, ret_lista):
     indice = ret.children[0].children[0].label  # pega o indice do no
     ret_tipo = ret.children[0].label  # pega o tipo do no
@@ -219,98 +303,42 @@ def processa_id(ret, retorno, ret_lista):
     return ret_lista
 
 
-def processa_parametro(param, tipo, nome):
-    mapping = {
-        'INTEIRO': (param.children[0].label, nome),
-        'FLUTUANTE': (param.children[0].label, nome),
-        'id': (tipo, param.children[0].label)
-    }  # dicionario para mapear o tipo do no para o tipo da tabela de simbolos
-    # retorna o tipo e o nome do parametro
-    return mapping.get(param.label, (tipo, nome))
-
-
 def aux_tipo(tipo):  # funcao para converter o tipo do no para o tipo da tabela de simbolos
     return conv_tipo.get(tipo)
 
-
-def processa_tipo(filho):
-    return filho.children[0].children[0].label  # retorna o tipo do no
-
-
-# funcao para processar a lista de parametros
-def processa_lista_parametros(filho):
-    if filho.children[0].label == 'vazio':
-        return 'vazio'
-    else:
-        return None
+def cria_modulo():
+    modulo = llvmir.Module('main.bc')  # cria o modulo
+    modulo.triple = binding.get_process_triple()  # pega a arquitetura do processador
+    target = binding.Target.from_triple(modulo.triple)  # cria o target
+    target_machine = target.create_target_machine()  # cria a maquina virtual
+    modulo.data_layout = target_machine.target_data  # cria o layout de dados
+    return modulo
 
 
-# funcao para processar o cabecalho da funcao
-def processa_cabecalho(filho, func_nome):
-    return filho.children[0].children[0].label, func_nome
+def func_inicializa(modulo):
+    escreva_inteiro_funcao = llvmir.FunctionType(
+        llvmir.VoidType(), [llvmir.IntType(32)])  # cria a funcao de escrever inteiro
+    # declara a funcao de escrever inteiro
+    w_int = llvmir.Function(modulo, escreva_inteiro_funcao, "w_int_var")
 
+    escreva_float_funcao = llvmir.FunctionType(
+        llvmir.VoidType(), [llvmir.FloatType()])  # cria a funcao de escrever float
+    # declara a funcao de escrever float
+    w_float = llvmir.Function(modulo, escreva_float_funcao, "w_float_var")
 
-def checa_declaracao_variavel(varss, var, tab_sym, error_handler):
-    for _, row in varss.iterrows():
-        declaracoes = tab_sym.loc[(tab_sym['lex'] == row['lex']) &
-                                  (tab_sym['iniciacao'] == '0') &
-                                  (tab_sym['escopo'] == row['escopo'])]  # procura por declaracoes de variaveis
+    leia_inteiro_funcao = llvmir.FunctionType(
+        llvmir.IntType(32), [])  # cria a funcao de ler inteiro
+    # declara a funcao de ler inteiro
+    r_int = llvmir.Function(modulo, leia_inteiro_funcao, "r_int_var")
 
-    if len(declaracoes) > 1:
-        print(error_handler.newError(
-            'WAR-ALR-DECL', var['lex']))  # se tiver mais de uma declaracao, printa o erro
+    leia_float_funcao = llvmir.FunctionType(
+        llvmir.FloatType(), [])  # cria a funcao de ler float
+    # declara a funcao de ler float
 
+    # declara a funcao de ler float
+    leia_float = llvmir.Function(modulo, leia_float_funcao, "r_float_var")
 
-def checa_inicializacao_variavel(tab_sym, var, error_handler):
-    inicializacao_variaveis = tab_sym.loc[(tab_sym['lex'] == var['lex']) &
-                                          (tab_sym['escopo'] == var['escopo']) &
-                                          (tab_sym['iniciacao'] == '1')]  # procura por inicializacoes de variaveis
-    if len(inicializacao_variaveis) == 0:  # se nao tiver inicializacao, printa o erro
-        print(error_handler.newError(
-            'WAR-SEM-VAR-DECL-NOT-USED', value=var['lex']))
-
-
-# funcao para checar se a funcao tem retorno
-def checa_retorno_funcao(tab_sym, error_handler):
-    main_func = tab_sym.loc[(tab_sym['funcao'] == '1') & (
-        tab_sym['lex'] == 'principal')]  # procura pela funcao principal
-    if not main_func.empty:
-        retorno_principal = tab_sym.loc[(tab_sym['funcao'] == '1') &
-                                        (tab_sym['escopo'] == 'principal') &
-                                        (tab_sym['lex'] == 'retorna')]  # procura pelo retorno da funcao principal
-        if retorno_principal.empty:
-            # se nao tiver retorno, printa o erro
-            print(error_handler.newError('ERR-RET-TIP-INCOMP'))
-    else:
-        # se nao tiver funcao principal, printa o erro
-        print(error_handler.newError('ERR-SEM-MAIN-NOT-DECL'))
-
-
-def checa_chamada_funcao(chamada, tab_sym, error_handler):
-    declara_func = tab_sym.loc[(tab_sym['funcao'] == '1') & (
-        tab_sym['lex'] == chamada['lex'])]  # procura pela declaracao da funcao
-    if declara_func.empty:
-        print(error_handler.newError(
-            'WAR-SEM-VAR-DECL-NOT-USED', value=chamada['lex']))  # se nao tiver declaracao, printa o erro
-    else:
-        qtd_params = len(chamada['parametros'])
-        params_declaracao = len(
-            declara_func.iloc[0]['parametros'])  # pega a quantidade de parametros da declaracao da funcao
-        if qtd_params != params_declaracao:
-            print(error_handler.newError(
-                'ERR-PARAM-FUNC-INCOMP', value=chamada['lex']))  # se a quantidade de parametros for diferente, printa o erro
-
-
-def instancia_llvm():
-    llmv = binding.initialize()  # instancia o llvm
-    llmv.initialize_native_target()  # inicializa o target
-    llmv.initialize_native_asmprinter()   # inicializa o asm printer
-    return llmv
-
-
-def instancia_modulo(name):
-    return llvmir.Module(name)  # instancia o modulo
-
+    return w_int, w_float, r_int, leia_float
 
 def var_aloca(no, modulo, builder, variavel, escopo, vars, escopo_atual):
     lex_val = variavel['lex'].values[0]  # pega o lexema da variavel
@@ -407,8 +435,9 @@ def func_aloca(variavel, modulo, no, tab_sym, lista_escopo, lista_declara_func, 
                 func_cria = llvmir.FunctionType(
                     llvmir.IntType(32), tipo_params)
 
-    func_nome = 'main' if (
-        f_func is not None and f_func['lex'].values[0] == 'principal') else f_func['lex'].values[0]  # pega o nome da funcao
+    print(f_func)
+    func_nome = 'main' 
+   #if ( f_func is not None and f_func['lex'].values[0] == 'principal') else f_func['lex'].values[0]  # pega o nome da funcao
     declara_func = llvmir.Function(
         modulo, func_cria, name=func_nome)  # declara a funcao
     lista_declara_func.append(declara_func)
@@ -427,38 +456,3 @@ def func_aloca(variavel, modulo, no, tab_sym, lista_escopo, lista_declara_func, 
     out_bloco = declara_func.append_basic_block('exit')
 
     pilha_out_bloco.append(out_bloco)
-
-
-def cria_modulo():
-    modulo = llvmir.Module('main.bc')  # cria o modulo
-    modulo.triple = binding.get_process_triple()  # pega a arquitetura do processador
-    target = binding.Target.from_triple(modulo.triple)  # cria o target
-    target_machine = target.create_target_machine()  # cria a maquina virtual
-    modulo.data_layout = target_machine.target_data  # cria o layout de dados
-    return modulo
-
-
-def func_inicializa(modulo):
-    escreva_inteiro_funcao = llvmir.FunctionType(
-        llvmir.VoidType(), [llvmir.IntType(32)])  # cria a funcao de escrever inteiro
-    # declara a funcao de escrever inteiro
-    w_int = llvmir.Function(modulo, escreva_inteiro_funcao, "w_int_var")
-
-    escreva_float_funcao = llvmir.FunctionType(
-        llvmir.VoidType(), [llvmir.FloatType()])  # cria a funcao de escrever float
-    # declara a funcao de escrever float
-    w_float = llvmir.Function(modulo, escreva_float_funcao, "w_float_var")
-
-    leia_inteiro_funcao = llvmir.FunctionType(
-        llvmir.IntType(32), [])  # cria a funcao de ler inteiro
-    # declara a funcao de ler inteiro
-    r_int = llvmir.Function(modulo, leia_inteiro_funcao, "r_int_var")
-
-    leia_float_funcao = llvmir.FunctionType(
-        llvmir.FloatType(), [])  # cria a funcao de ler float
-    # declara a funcao de ler float
-
-    # declara a funcao de ler float
-    leia_float = llvmir.Function(modulo, leia_float_funcao, "r_float_var")
-
-    return w_int, w_float, r_int, leia_float
