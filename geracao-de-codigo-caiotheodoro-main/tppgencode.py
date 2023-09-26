@@ -15,7 +15,7 @@ error_handler = MyError('SemaErrors')
 global builder
 
 
-config = { # Configurações iniciais de variáveis que serão utilizadas no código
+config = { ### Configurações iniciais de variáveis que serão utilizadas no código
     'escopo': '',
     'modulo': None,
     'tab_sym': None,
@@ -192,13 +192,11 @@ def decl_func_utils(linha,no):
 
     if declaracao_func:
         bloco_entrada = declaracao_func.append_basic_block('entry') # Cria o bloco de entrada da função
-        bloco_fim = declaracao_func.append_basic_block('exit') # Cria o bloco de saída da função
+        bloco_fim = declaracao_func.append_basic_block(name='exit') # Cria o bloco de saída da função
 
-        # Put exit blocks on a stack
         config['pilha_bloco_fim'].append(bloco_fim) # Adiciona o bloco de saída na pilha
-
-        # Add the entry block 
         builder = ir.IRBuilder(bloco_entrada) # Cria o bloco de entrada
+        print(builder ,"builder")
 
 def decl_retorna_utils(linha,no):
     linha = no.label.split(':') # Pega a linha do nó
@@ -208,10 +206,10 @@ def decl_retorna_utils(linha,no):
 
     if not retorno_encontrado.empty: # Verifica se o retorno foi encontrado
         retorno_valor = retorno_encontrado['valor'].values[0] # Pega o valor do retorno 
-
     topo_bloco_fim = config['pilha_bloco_fim'].pop() # Pega o bloco de saída do topo da pilha
-
     if (not config['tem_se']): # Verifica se tem um 'se'
+        print(type(topo_bloco_fim))
+        print("oi3",topo_bloco_fim)
         builder.branch(topo_bloco_fim) # Cria o branch do bloco de saída
 
     builder.position_at_end(topo_bloco_fim) # Posiciona o bloco de saída no topo
@@ -429,13 +427,14 @@ def decl_se_utils(linha,no):
     comp_var_dir = ir.Constant(ir.IntType(32), int(no.children[2].label)) # Pega a variável da direita
 
     if len(no.children[1].children) > 0:
+        print("test1")
         comp_operacao = builder.icmp_signed(str(no.children[1].children[0].label), builder.load(comp_var_esq), comp_var_dir) # Pega a operação da comparação
     else:
+        print("test2")
         comp_operacao = builder.icmp_signed(str(no.children[1].label), builder.load(comp_var_esq), comp_var_dir) # Pega a operação da comparação
-    
     builder.cbranch(comp_operacao, if_verdade_1, if_falso_1) # Cria o branch da comparação
- 
-    builder.position_at_end(if_verdade_1) # Posiciona o bloco de verdade no topo
+
+    # builder.position_at_end(if_verdade_1) # Posiciona o bloco de verdade no topo
 
 
 def decl_senao_utils(linha,no):
@@ -456,7 +455,7 @@ def decl_fim_se_utils(linha,no):
         saida_bloco_principal = config['pilha_bloco_fim'].pop() # Pega o bloco de saída do topo da pilha
 
         builder.branch(bloco_topo) # Cria o branch do bloco do topo
-
+        print("bloco_topo",bloco_topo)
         builder.position_at_end(bloco_topo) # Posiciona o bloco do topo no topo
         builder.branch(saida_bloco_principal) # Cria o branch do bloco de saída principal
 
@@ -471,7 +470,7 @@ def decl_repita_utils(linha,no):
     config['pilha_loop_validacao'].append(loop_validacao) # Adiciona o loop de validação na pilha
     config['pilha_loop'].append(loop) # Adiciona o loop na pilha
     config['pilha_bloco_fim'].append(loop_end) # Adiciona o loop de saída na pilha
-
+    print("loop",loop)
     builder.branch(loop) # Cria o branch do loop
 
     builder.position_at_end(loop)        # Posiciona o loop no topo
@@ -488,6 +487,7 @@ def decl_ate_utils(linha,no):
     comp_variavel = acha_var_aux(comp_esq) # Procura a variável da comparação na tabela de simbolos
     if '=' == comp_sinal:
         expressao = builder.icmp_signed('==', builder.load(comp_variavel), comp_valor, name='exp_igualdade') # Pega a expressão da comparação
+        print("expressao, loop_inicial, saida",expressao, loop_inicial, saida)
         builder.cbranch(expressao, loop_inicial, saida) # Cria o branch da comparação
  
     builder.position_at_end(saida) # Posiciona o bloco de saída no topo
@@ -612,4 +612,8 @@ if __name__ == "__main__":
             config['modulo'])  # inicializa as funções de escrita e leitura (serão usadas para a escrita e leitura de variaveis)
 
     main_ll_gerador(root)
+    # config['modulo'] = modify_ir_code(str(config['modulo']))
+    # print(config['modulo'])
+    # config['modulo'] = binding.parse_assembly(config['modulo'])
     out_arq(config['modulo'])
+    # main_process()
