@@ -1,4 +1,0 @@
-token,lex,tipo,dimensao,tamanho dimensional 1,tamnho dimensional 2,escopo,iniciacao,linha,funcao,parametros,valor
-ID,a,inteiro,0,0,0,global,N,declaracao_variaveis,N,n/a,n/a
-ID,principal,inteiro,0,0,0,global,N,,S,[],n/a
-ID,b,inteiro,0,0,0,global,N,declaracao_variaveis,N,n/a,n/a

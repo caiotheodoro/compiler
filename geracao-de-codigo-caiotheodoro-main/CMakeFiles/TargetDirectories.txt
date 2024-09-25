@@ -1,6 +1,0 @@
-/home/user/Downloads/a/Compiladores/geracao-de-codigo-caiotheodoro-main/CMakeFiles/rebuild_cache.dir
-/home/user/Downloads/a/Compiladores/geracao-de-codigo-caiotheodoro-main/CMakeFiles/acc_gen.dir
-/home/user/Downloads/a/Compiladores/geracao-de-codigo-caiotheodoro-main/CMakeFiles/edit_cache.dir
-/home/user/Downloads/a/Compiladores/geracao-de-codigo-caiotheodoro-main/CMakeFiles/run_llvm_ir.dir
-/home/user/Downloads/a/Compiladores/geracao-de-codigo-caiotheodoro-main/CMakeFiles/omp_gen.dir
-/home/user/Downloads/a/Compiladores/geracao-de-codigo-caiotheodoro-main/CMakeFiles/intrinsics_gen.dir
